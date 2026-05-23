@@ -549,3 +549,143 @@
     padding: 12px 16px;
   }
 }
+
+/* Enhanced Responsive Design */
+@media (max-width: 1024px) {
+  .dashboardContainer {
+    padding: 1.5rem;
+  }
+  
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .table {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboardContainer {
+    padding: 1rem;
+  }
+  
+  .header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .header p {
+    font-size: 0.875rem;
+  }
+
+  .statsRow {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .statCard {
+    padding: 1rem;
+  }
+  
+  .statIcon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.125rem;
+  }
+  
+  .statValue {
+    font-size: 1.5rem;
+  }
+  
+  .statLabel {
+    font-size: 0.75rem;
+  }
+
+  .tabsContainer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .tab {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tableHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .search {
+    width: 100%;
+  }
+  
+  .searchInput {
+    width: 100%;
+  }
+
+  .table {
+    font-size: 0.8125rem;
+    display: block;
+    overflow-x: auto;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.75rem;
+    white-space: nowrap;
+  }
+  
+  .roleBadge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .actionButtons button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .header p {
+    font-size: 0.8125rem;
+  }
+  
+  .statValue {
+    font-size: 1.25rem;
+  }
+  
+  .statLabel {
+    font-size: 0.7rem;
+  }
+  
+  .tab {
+    font-size: 0.8125rem;
+    padding: 0.625rem 1rem;
+  }
+  
+  .table {
+    font-size: 0.75rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.625rem 0.5rem;
+  }
+  
+  .actionButtons button {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+}

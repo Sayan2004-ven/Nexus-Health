@@ -440,158 +440,190 @@ export default function PatientDashboard() {
     return appointmentDateTime < new Date();
   });
 
+  // Group bookings by date
+  const groupByDate = (bookings) => {
+    const grouped = {};
+    bookings.forEach(booking => {
+      const date = parseDateFromDB(booking.booking_date);
+      if (!date) return;
+      
+      const dateKey = date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      }).toUpperCase();
+      
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(booking);
+    });
+    return grouped;
+  };
+
   return (
   <div className={styles.container}>
-    {/* Navbar */}
-    <PatientNavbar />
+    {/* Top Navigation */}
+    <nav className={styles.topNav}>
+      <div className={styles.navLeft}>
+        <div className={styles.logo}>
+          <div className={styles.logoIcon}>NH</div>
+          <span>Nexus Health</span>
+        </div>
+        <div className={styles.navTabs}>
+          <button className={styles.navTab} onClick={() => navigate("/")}>Dashboard</button>
+          <button className={styles.navTab} onClick={() => navigate("/hospitals")}>Doctors</button>
+          <button className={`${styles.navTab} ${styles.active}`}>My Appointments</button>
+        </div>
+      </div>
+      <div className={styles.navRight}>
+        <div className={styles.userProfile}>
+          <div className={styles.userAvatar}>
+            {user?.fname?.charAt(0)}{user?.lname?.charAt(0)}
+          </div>
+          <span className={styles.userName}>{user?.fname}</span>
+        </div>
+      </div>
+    </nav>
 
-    {/* Dashboard Layout */}
-    <div className={styles.dashboardLayout}>
-      {/* Left Sidebar - Filters */}
+    {/* Page Header with Stats */}
+    <div className={styles.pageHeader}>
+      <div className={styles.headerTop}>
+        <div className={styles.headerTitle}>
+          <h1>My Appointments</h1>
+          <p>Track and manage all your bookings and meetings</p>
+        </div>
+        <button className={styles.bookBtn} onClick={() => navigate("/hospitals")}>
+          Book New Appointment
+        </button>
+      </div>
+      
+      <div className={styles.statsRow}>
+        <div className={`${styles.statCard} ${styles.blue}`}>
+          <h2 className={styles.statNumber}>{statusCounts.all}</h2>
+          <p className={styles.statLabel}>Total Appointments</p>
+          <p className={styles.statSubtext}>All time</p>
+        </div>
+        <div className={`${styles.statCard} ${styles.yellow}`}>
+          <h2 className={styles.statNumber}>{statusCounts.pending + statusCounts.confirmed}</h2>
+          <p className={styles.statLabel}>Upcoming</p>
+          <p className={styles.statSubtext}>Pending & Confirmed</p>
+        </div>
+        <div className={`${styles.statCard} ${styles.green}`}>
+          <h2 className={styles.statNumber}>{statusCounts.completed}</h2>
+          <p className={styles.statLabel}>Completed</p>
+          <p className={styles.statSubtext}>All time</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Main Layout */}
+    <div className={styles.mainLayout}>
+      {/* Sidebar */}
       <aside className={styles.sidebar}>
-        {/* Sidebar Header */}
-        <div className={styles.sidebarHeader}>
-          <div className={styles.welcomeSection}>
-            <div className={styles.avatarCircle}>
-              {user?.fname?.charAt(0)}{user?.lname?.charAt(0)}
-            </div>
-            <div>
-              <h2 className={styles.sidebarTitle}>My Appointments</h2>
-              <p className={styles.sidebarSubtitle}>View and manage your bookings</p>
-            </div>
-          </div>
+        {/* Search */}
+        <div className={styles.searchBox}>
+          <i className={`fas fa-search ${styles.searchIcon}`}></i>
+          <input
+            type="text"
+            placeholder="Search doctor, type..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
 
-        {/* Search Bar */}
-        <div className={styles.searchSection}>
-          <div className={styles.searchBox}>
-            <i className="fas fa-search"></i>
-            <input
-              type="text"
-              placeholder="Search doctor, type..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
-            />
-            {searchQuery && (
-              <button 
-                className={styles.clearSearch}
-                onClick={() => setSearchQuery('')}
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className={styles.statsSection}>
+        {/* Status Filters */}
+        <div className={styles.filterSection}>
           <h3 className={styles.filterTitle}>Status</h3>
-          <div className={styles.statsCards}>
+          <div className={styles.filterList}>
             <div 
-              className={`${styles.statCard} ${statusFilter === 'all' ? styles.active : ''}`}
+              className={`${styles.filterItem} ${statusFilter === 'all' ? styles.active : ''}`}
               onClick={() => setStatusFilter('all')}
             >
-              <div className={styles.statLeft}>
-                <div className={`${styles.statIconBox} ${styles.blue}`}>
-                  <i className="fas fa-calendar-alt"></i>
-                </div>
-                <span className={styles.statLabel}>All</span>
+              <div className={styles.filterLeft}>
+                <div className={`${styles.filterDot} ${styles.all}`}></div>
+                <span className={styles.filterLabel}>All</span>
               </div>
-              <span className={styles.statCount}>{statusCounts.all}</span>
+              <span className={styles.filterCount}>{statusCounts.all}</span>
             </div>
             <div 
-              className={`${styles.statCard} ${statusFilter === 'pending' ? styles.active : ''}`}
+              className={`${styles.filterItem} ${statusFilter === 'pending' ? styles.active : ''}`}
               onClick={() => setStatusFilter('pending')}
             >
-              <div className={styles.statLeft}>
-                <div className={`${styles.statIconBox} ${styles.yellow}`}>
-                  <i className="fas fa-clock"></i>
-                </div>
-                <span className={styles.statLabel}>Pending</span>
+              <div className={styles.filterLeft}>
+                <div className={`${styles.filterDot} ${styles.today}`}></div>
+                <span className={styles.filterLabel}>Pending</span>
               </div>
-              <span className={styles.statCount}>{statusCounts.pending}</span>
+              <span className={styles.filterCount}>{statusCounts.pending}</span>
             </div>
             <div 
-              className={`${styles.statCard} ${statusFilter === 'confirmed' ? styles.active : ''}`}
+              className={`${styles.filterItem} ${statusFilter === 'confirmed' ? styles.active : ''}`}
               onClick={() => setStatusFilter('confirmed')}
             >
-              <div className={styles.statLeft}>
-                <div className={`${styles.statIconBox} ${styles.green}`}>
-                  <i className="fas fa-check-circle"></i>
-                </div>
-                <span className={styles.statLabel}>Confirmed</span>
+              <div className={styles.filterLeft}>
+                <div className={`${styles.filterDot} ${styles.confirmed}`}></div>
+                <span className={styles.filterLabel}>Confirmed</span>
               </div>
-              <span className={styles.statCount}>{statusCounts.confirmed}</span>
+              <span className={styles.filterCount}>{statusCounts.confirmed}</span>
             </div>
             <div 
-              className={`${styles.statCard} ${statusFilter === 'completed' ? styles.active : ''}`}
+              className={`${styles.filterItem} ${statusFilter === 'completed' ? styles.active : ''}`}
               onClick={() => setStatusFilter('completed')}
             >
-              <div className={styles.statLeft}>
-                <div className={`${styles.statIconBox} ${styles.blue}`}>
-                  <i className="fas fa-check-double"></i>
-                </div>
-                <span className={styles.statLabel}>Completed</span>
+              <div className={styles.filterLeft}>
+                <div className={`${styles.filterDot} ${styles.completed}`}></div>
+                <span className={styles.filterLabel}>Completed</span>
               </div>
-              <span className={styles.statCount}>{statusCounts.completed}</span>
+              <span className={styles.filterCount}>{statusCounts.completed}</span>
             </div>
             <div 
-              className={`${styles.statCard} ${statusFilter === 'cancelled' ? styles.active : ''}`}
+              className={`${styles.filterItem} ${statusFilter === 'cancelled' ? styles.active : ''}`}
               onClick={() => setStatusFilter('cancelled')}
             >
-              <div className={styles.statLeft}>
-                <div className={`${styles.statIconBox} ${styles.red}`}>
-                  <i className="fas fa-times-circle"></i>
-                </div>
-                <span className={styles.statLabel}>Cancelled</span>
+              <div className={styles.filterLeft}>
+                <div className={`${styles.filterDot} ${styles.cancelled}`}></div>
+                <span className={styles.filterLabel}>Cancelled</span>
               </div>
-              <span className={styles.statCount}>{statusCounts.cancelled}</span>
+              <span className={styles.filterCount}>{statusCounts.cancelled}</span>
             </div>
           </div>
         </div>
 
-        {/* Doctors Filter */}
+        {/* Doctor Filters */}
         <div className={styles.filterSection}>
           <h3 className={styles.filterTitle}>Doctor</h3>
-          <div className={styles.doctorsList}>
+          <div className={styles.doctorList}>
             <div 
               className={`${styles.doctorItem} ${!selectedDoctor ? styles.active : ''}`}
               onClick={() => setSelectedDoctor(null)}
             >
-              <div className={styles.doctorAvatar} style={{background: 'linear-gradient(135deg, #667eea, #764ba2)'}}>
-                <i className="fas fa-user-md"></i>
-              </div>
+              <div className={styles.doctorAvatar}>All</div>
               <div className={styles.doctorInfo}>
                 <p className={styles.doctorName}>All Doctors</p>
                 <p className={styles.doctorSpec}>{uniqueDoctors.length} doctors</p>
               </div>
-              <span className={styles.doctorCount}>{bookings.length}</span>
             </div>
-            {uniqueDoctors.map(doctor => {
-              const doctorBookings = bookings.filter(b => b.doctor_id === doctor.id).length;
-              return (
-                <div 
-                  key={doctor.id}
-                  className={`${styles.doctorItem} ${selectedDoctor === doctor.id ? styles.active : ''}`}
-                  onClick={() => setSelectedDoctor(doctor.id)}
-                >
-                  <div className={styles.doctorAvatar}>
-                    {doctor.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </div>
-                  <div className={styles.doctorInfo}>
-                    <p className={styles.doctorName}>Dr. {doctor.name}</p>
-                    <p className={styles.doctorSpec}>{doctor.specialization}</p>
-                  </div>
-                  <span className={styles.doctorCount}>{doctorBookings}</span>
+            {uniqueDoctors.map(doctor => (
+              <div 
+                key={doctor.id}
+                className={`${styles.doctorItem} ${selectedDoctor === doctor.id ? styles.active : ''}`}
+                onClick={() => setSelectedDoctor(doctor.id)}
+              >
+                <div className={styles.doctorAvatar}>
+                  {doctor.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
-              );
-            })}
+                <div className={styles.doctorInfo}>
+                  <p className={styles.doctorName}>Dr. {doctor.name}</p>
+                  <p className={styles.doctorSpec}>{doctor.specialization}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Sort By */}
-        <div className={styles.filterSection}>
+        {/* Sort */}
+        <div className={styles.sortSection}>
           <h3 className={styles.filterTitle}>Sort By</h3>
           <select 
             className={styles.sortSelect}
@@ -605,88 +637,8 @@ export default function PatientDashboard() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <main className={styles.mainContent}>
-        {/* Content Header */}
-        <div className={styles.contentHeader}>
-          <div className={styles.headerLeft}>
-            <h1>All Appointments ({sortedBookings.length})</h1>
-            <p>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
-          </div>
-          <div className={styles.headerActions}>
-            {/* Notification Bell - KEEP EXISTING CODE FROM OLD VERSION */}
-            <div className={styles.notificationWrapper}>
-              <button 
-                className={styles.notificationBtn}
-                onClick={() => setShowNotifications(!showNotifications)}
-                title="Notifications"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                {unreadCount > 0 && (
-                  <span className={styles.notificationBadge}>{unreadCount}</span>
-                )}
-              </button>
-              
-              {showNotifications && (
-                <div className={styles.notificationDropdown}>
-                  <div className={styles.notificationHeader}>
-                    <h3>Notifications</h3>
-                    {unreadCount > 0 && (
-                      <button onClick={markAllAsRead} className={styles.markAllRead}>
-                        Mark all read
-                      </button>
-                    )}
-                  </div>
-                  <div className={styles.notificationList}>
-                    {notifications.length === 0 ? (
-                      <div className={styles.noNotifications}>
-                        <span>📭</span>
-                        <p>No notifications yet</p>
-                      </div>
-                    ) : (
-                      notifications.map(notif => (
-                        <div 
-                          key={notif.id} 
-                          className={`${styles.notificationItem} ${notif.read ? styles.notificationRead : ''}`}
-                          onClick={() => markAsRead(notif.id)}
-                        >
-                          <div className={styles.notificationIcon}>
-                            {notif.type === 'appointment_confirmed' ? '✅' : 
-                             notif.type === 'appointment_rejected' ? '❌' : '📅'}
-                          </div>
-                          <div className={styles.notificationContent}>
-                            <h4>{notif.title}</h4>
-                            <p>{notif.message}</p>
-                            <span className={styles.notificationTime}>
-                              {formatNotificationTime(notif.time)}
-                            </span>
-                          </div>
-                          {!notif.read && <div className={styles.unreadDot}></div>}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <button
-              className={styles.btnPrimary}
-              onClick={() => navigate("/hospitals")}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Book New Appointment
-            </button>
-          </div>
-        </div>
-
-        {/* Appointments List */}
         {loading ? (
           <div className={styles.loading}>Loading your appointments...</div>
         ) : sortedBookings.length === 0 ? (
@@ -698,185 +650,193 @@ export default function PatientDashboard() {
             <p>{searchQuery ? 'No results match your search' : statusFilter !== 'all' ? 'Try changing your filters' : 'You haven\'t booked any appointments yet'}</p>
             {(searchQuery || statusFilter !== 'all' || selectedDoctor) && (
               <button
-                className={styles.btnSecondary}
+                className={styles.bookBtn}
                 onClick={() => {
                   setSearchQuery('');
                   setStatusFilter('all');
                   setSelectedDoctor(null);
                 }}
-                style={{marginBottom: '1rem'}}
+                style={{marginBottom: '1rem', background: '#6b7280'}}
               >
                 Clear Filters
               </button>
             )}
-            <button
-              className={styles.btnPrimary}
-              onClick={() => navigate("/hospitals")}
-            >
+            <button className={styles.bookBtn} onClick={() => navigate("/hospitals")}>
               Find Doctors
             </button>
           </div>
         ) : (
-          <div className={styles.appointmentsList}>
-            {sortedBookings.map((booking) => {
-              const statusInfo = getBookingStatus(booking);
-              const isExpanded = expandedAppointment === booking.id;
-              const hasPrescription = prescriptions[booking.id];
-              const reports = appointmentReports[booking.id] || [];
-              const eligibility = uploadEligibility[booking.id];
-              const canUpload = eligibility?.eligible && booking.completed;
-              
-              return (
-                <div key={booking.id} className={styles.appointmentItem}>
-                  {/* Appointment Header */}
-                  <div 
-                    className={styles.appointmentHeader}
-                    onClick={() => setExpandedAppointment(isExpanded ? null : booking.id)}
-                  >
-                    <div className={styles.appointmentLeft}>
-                      <div className={styles.appointmentAvatar}>
-                        {booking.doctor_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                      </div>
-                      <div className={styles.appointmentInfo}>
-                        <h3 className={styles.appointmentDoctor}>Dr. {booking.doctor_name}</h3>
-                        <p className={styles.appointmentSpec}>{booking.specialization}</p>
-                      </div>
-                    </div>
-                    <div className={styles.appointmentRight}>
-                      <div className={styles.appointmentDateTime}>
-                        <p className={styles.appointmentDate}>{formatDate(booking.booking_date)}</p>
-                        <p className={styles.appointmentTime}>{formatTime(booking.booking_time)}</p>
-                      </div>
-                      <span className={`${styles.statusBadge} ${statusInfo.className}`}>
-                        {statusInfo.status}
-                      </span>
-                      <button className={styles.expandBtn}>
-                        {isExpanded ? '▲' : '▼'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Appointment Details (Expanded) */}
-                  {isExpanded && (
-                    <div className={styles.appointmentDetails}>
-                      <div className={styles.detailsGrid}>
-                        <div className={styles.detailItem}>
-                          <div className={styles.detailIcon}>
-                            <i className="fas fa-map-marker-alt"></i>
+          // Group appointments by date
+          Object.entries(groupByDate(sortedBookings)).map(([date, appointments]) => (
+            <div key={date} className={styles.dateSection}>
+              <h2 className={styles.dateHeader}>{date}</h2>
+              <div className={styles.appointmentsList}>
+                {appointments.map((booking) => {
+                  const statusInfo = getBookingStatus(booking);
+                  const hasPrescription = prescriptions[booking.id];
+                  const reports = appointmentReports[booking.id] || [];
+                  const eligibility = uploadEligibility[booking.id];
+                  const canUpload = eligibility?.eligible && booking.completed;
+                  
+                  const isExpanded = expandedAppointment === booking.id;
+                  
+                  return (
+                    <div key={booking.id} className={styles.appointmentWrapper}>
+                      <div 
+                        className={`${styles.appointmentCard} ${isExpanded ? styles.expanded : ''}`}
+                        onClick={() => setExpandedAppointment(isExpanded ? null : booking.id)}
+                      >
+                        <div className={styles.appointmentLeft}>
+                          <div className={styles.appointmentAvatar}>
+                            {booking.doctor_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                           </div>
-                          <div className={styles.detailContent}>
-                            <p className={styles.detailLabel}>Location</p>
-                            <p className={styles.detailValue}>{booking.city}</p>
+                          <div className={styles.appointmentInfo}>
+                            <h3 className={styles.appointmentDoctor}>Dr. {booking.doctor_name}</h3>
+                            <p className={styles.appointmentSpec}>{booking.specialization}</p>
                           </div>
                         </div>
-                        <div className={styles.detailItem}>
-                          <div className={styles.detailIcon}>
-                            <i className="fas fa-rupee-sign"></i>
+                        <div className={styles.appointmentRight}>
+                          <div className={styles.appointmentTime}>
+                            <p className={styles.timeLabel}>{formatTime(booking.booking_time)}</p>
+                            <p className={styles.feeLabel}>{booking.city} • ₹{booking.consultation_fee}</p>
                           </div>
-                          <div className={styles.detailContent}>
-                            <p className={styles.detailLabel}>Consultation Fee</p>
-                            <p className={styles.detailValue}>₹{booking.consultation_fee}</p>
-                          </div>
-                        </div>
-                        <div className={styles.detailItem}>
-                          <div className={styles.detailIcon}>
-                            <i className="fas fa-user"></i>
-                          </div>
-                          <div className={styles.detailContent}>
-                            <p className={styles.detailLabel}>Patient Name</p>
-                            <p className={styles.detailValue}>{booking.patient_name}</p>
-                          </div>
-                        </div>
-                        <div className={styles.detailItem}>
-                          <div className={styles.detailIcon}>
-                            <i className="fas fa-phone-alt"></i>
-                          </div>
-                          <div className={styles.detailContent}>
-                            <p className={styles.detailLabel}>Contact</p>
-                            <p className={styles.detailValue}>{booking.patient_contact}</p>
-                          </div>
+                          <span className={`${styles.statusBadge} ${statusInfo.className}`}>
+                            {statusInfo.status}
+                          </span>
                         </div>
                       </div>
-
-                      {/* Action Buttons */}
-                      <div className={styles.actionButtons}>
-                        {booking.completed && hasPrescription && (
-                          <button
-                            className={styles.btnDownload}
-                            onClick={() => downloadPrescription(hasPrescription.id)}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                              <polyline points="7 10 12 15 17 10"></polyline>
-                              <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download Prescription
-                          </button>
-                        )}
-                        
-                        {canUpload && (
-                          <button
-                            className={styles.btnUpload}
-                            onClick={() => openUploadModal(booking)}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                              <polyline points="17 8 12 3 7 8"></polyline>
-                              <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            Upload Report ({eligibility.daysRemaining} days left)
-                          </button>
-                        )}
-                        
-                        {!booking.completed && booking.status !== 'confirmed' && booking.status !== 'rejected' && (
-                          <button
-                            className={styles.btnCancel}
-                            onClick={() => cancelBooking(booking.id)}
-                          >
-                            Cancel Appointment
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Reports Section */}
-                      {reports.length > 0 && (
-                        <div className={styles.reportsSection}>
-                          <h4 className={styles.reportsTitle}>
-                            <i className="fas fa-file-medical"></i> Uploaded Reports ({reports.length})
-                          </h4>
-                          <div className={styles.reportsList}>
-                            {reports.map(report => (
-                              <div key={report.id} className={styles.reportItem}>
-                                <div className={styles.reportInfo}>
-                                  <i className={`fas ${report.file_type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}></i>
-                                  <span className={styles.reportName}>{report.report_name}</span>
-                                  <span className={styles.reportDate}>
-                                    {new Date(report.uploaded_at).toLocaleDateString()}
-                                  </span>
-                                </div>
-                                <button
-                                  className={styles.btnDownloadReport}
-                                  onClick={() => downloadReport(report.id)}
-                                  title="Download Report"
-                                >
-                                  <i className="fas fa-download"></i>
-                                </button>
-                              </div>
-                            ))}
+                      
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className={styles.appointmentDetails}>
+                          <div className={styles.detailsHeader}>
+                            <h4>Appointment Details</h4>
+                          </div>
+                          
+                          <div className={styles.detailsGrid}>
+                            <div className={styles.detailItem}>
+                              <span className={styles.detailLabel}>Patient:</span>
+                              <span className={styles.detailValue}>{booking.patient_name}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                              <span className={styles.detailLabel}>Contact:</span>
+                              <span className={styles.detailValue}>{booking.patient_contact}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                              <span className={styles.detailLabel}>Date:</span>
+                              <span className={styles.detailValue}>{formatDate(booking.booking_date)}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                              <span className={styles.detailLabel}>Time:</span>
+                              <span className={styles.detailValue}>{formatTime(booking.booking_time)}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                              <span className={styles.detailLabel}>Location:</span>
+                              <span className={styles.detailValue}>{booking.city}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                              <span className={styles.detailLabel}>Fee:</span>
+                              <span className={styles.detailValue}>₹{booking.consultation_fee}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Notes Section */}
+                          {booking.completed && (
+                            <div className={styles.notesSection}>
+                              <h5>Notes</h5>
+                              <p>Upload report within 15 days post-visit.</p>
+                            </div>
+                          )}
+                          
+                          {/* Action Buttons */}
+                          <div className={styles.actionButtons}>
+                            {/* Pending - Show Cancel */}
+                            {booking.status === 'pending' && (
+                              <button
+                                className={styles.btnCancel}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelBooking(booking.id);
+                                }}
+                              >
+                                <i className="fas fa-times"></i>
+                                Cancel Appointment
+                              </button>
+                            )}
+                            
+                            {/* Completed - Show Download Prescription and Upload Report */}
+                            {booking.completed && (
+                              <>
+                                {hasPrescription && (
+                                  <button
+                                    className={styles.btnDownload}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      downloadPrescription(hasPrescription.id);
+                                    }}
+                                  >
+                                    <i className="fas fa-download"></i>
+                                    Download Prescription
+                                  </button>
+                                )}
+                                
+                                {canUpload && (
+                                  <button
+                                    className={styles.btnUpload}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openUploadModal(booking);
+                                    }}
+                                  >
+                                    <i className="fas fa-upload"></i>
+                                    Upload Report ({eligibility.daysRemaining} days left)
+                                  </button>
+                                )}
+                                
+                                {/* Show uploaded reports */}
+                                {reports.length > 0 && (
+                                  <div className={styles.reportsSection}>
+                                    <h5>Uploaded Reports ({reports.length})</h5>
+                                    <div className={styles.reportsList}>
+                                      {reports.map(report => (
+                                        <div key={report.id} className={styles.reportItem}>
+                                          <div className={styles.reportInfo}>
+                                            <i className={`fas ${report.file_type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}></i>
+                                            <span className={styles.reportName}>{report.report_name}</span>
+                                            <span className={styles.reportDate}>
+                                              {new Date(report.uploaded_at).toLocaleDateString()}
+                                            </span>
+                                          </div>
+                                          <button
+                                            className={styles.btnDownloadReport}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              downloadReport(report.id);
+                                            }}
+                                          >
+                                            <i className="fas fa-download"></i>
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </main>
     </div>
     
-    {/* Upload Report Modal - KEEP EXISTING MODAL CODE */}
+    {/* Upload Report Modal */}
     {showUploadModal && selectedAppointment && (
       <div className={styles.modalOverlay} onClick={closeUploadModal}>
         <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -951,5 +911,6 @@ export default function PatientDashboard() {
       </div>
     )}
   </div>
-)
+);
 }
+
