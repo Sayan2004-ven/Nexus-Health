@@ -29,33 +29,11 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.welcomeSection {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.avatarCircle {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  flex-shrink: 0;
-}
-
 .sidebarTitle {
   font-size: 0.875rem;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.5rem 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -66,119 +44,45 @@
   margin: 0;
 }
 
-/* Search Section */
-.searchSection {
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.searchBox {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.searchBox i {
-  position: absolute;
-  left: 12px;
-  color: #9ca3af;
-  font-size: 0.875rem;
-}
-
-.searchInput {
-  width: 100%;
-  padding: 0.625rem 2.5rem 0.625rem 2.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.2s;
-  background: #f9fafb;
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: #6366f1;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.searchInput::placeholder {
-  color: #9ca3af;
-}
-
-.clearSearch {
-  position: absolute;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: #e5e7eb;
-  color: #6b7280;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1.25rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.clearSearch:hover {
-  background: #d1d5db;
-  color: #374151;
-}
-
-/* Stats Section */
-.statsSection {
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
+/* Stats Cards in Sidebar */
 .statsCards {
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .statCard {
-  background: white;
-  border: 1.5px solid #e5e7eb;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 0.75rem 1rem;
+  padding: 1rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.75rem;
   transition: all 0.2s;
   cursor: pointer;
 }
 
 .statCard:hover {
   border-color: #6366f1;
-  background: #f9fafb;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
 }
 
 .statCard.active {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border-color: #6366f1;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
-}
-
-.statLeft {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .statIconBox {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   flex-shrink: 0;
 }
 
@@ -200,20 +104,6 @@
 .statIconBox.red {
   background: #fee2e2;
   color: #dc2626;
-}
-
-.statLabel {
-  font-size: 0.875rem;
-  color: #374151;
-  font-weight: 500;
-}
-
-.statCount {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  min-width: 28px;
-  text-align: right;
 }
 
 .statContent h4 {
@@ -247,31 +137,54 @@
   letter-spacing: 0.05em;
 }
 
+.filterList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filterItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.filterItem:hover {
+  background: #f9fafb;
+}
+
+.filterItem.active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.filterBadge {
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.filterItem.active .filterBadge {
+  background: #2563eb;
+  color: white;
+}
+
 /* Doctors List */
 .doctorsList {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.doctorsList::-webkit-scrollbar {
-  width: 6px;
-}
-
-.doctorsList::-webkit-scrollbar-track {
-  background: #f3f4f6;
-  border-radius: 3px;
-}
-
-.doctorsList::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
-}
-
-.doctorsList::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
 }
 
 .doctorItem {
@@ -282,22 +195,19 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s;
-  border: 1.5px solid transparent;
 }
 
 .doctorItem:hover {
   background: #f9fafb;
-  border-color: #e5e7eb;
 }
 
 .doctorItem.active {
   background: #eff6ff;
-  border-color: #6366f1;
 }
 
 .doctorAvatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
@@ -331,47 +241,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.doctorCount {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  min-width: 28px;
-  text-align: center;
-}
-
-.doctorItem.active .doctorCount {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-/* Sort Select */
-.sortSelect {
-  width: 100%;
-  padding: 0.625rem 0.75rem;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-family: 'Inter', sans-serif;
-  color: #374151;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.sortSelect:hover {
-  border-color: #6366f1;
-  background: #f9fafb;
-}
-
-.sortSelect:focus {
-  outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* Main Content Area */
@@ -717,16 +586,6 @@
 .statusRejected {
   background: #fee2e2;
   color: #991b1b;
-}
-
-.statusToday {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.statusUpcoming {
-  background: #eff6ff;
-  color: #1e40af;
 }
 
 .expandBtn {

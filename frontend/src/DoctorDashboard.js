@@ -516,244 +516,312 @@ export default function DoctorDashboard() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.gridOverlay} />
-
-      {/* Navbar */}
-      <nav className={styles.nav}>
-        <div className={styles.logo}>
-          <div className={styles.logoMark}>
-            <svg viewBox="0 0 16 16" fill="none">
-              <path d="M8 1.5L13 4.5V10.5L8 13.5L3 10.5V4.5L8 1.5Z"
-                stroke="#4f8ef7" strokeWidth="1.2" strokeLinejoin="round"/>
-              <circle cx="8" cy="7.5" r="1.8" fill="#4f8ef7"/>
-            </svg>
-          </div>
-          <span className={styles.logoName}>Nexus</span>
-        </div>
-
-        <div className={styles.navRight}>
-          <div className={styles.userInfo}>
-            <span className={styles.userName}>{user?.fname} {user?.lname}</span>
-            <span className={styles.userRole}>Doctor</span>
-          </div>
-          {isRegistered && !showRegistrationForm && (
-            <>
-              {/* Notification Bell */}
-              <div className={styles.notificationWrapper}>
-                <button 
-                  className={styles.notificationBtn}
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  title="Notifications"
-                >
-                  🔔
-                  {unreadCount > 0 && (
-                    <span className={styles.notificationBadge}>{unreadCount}</span>
-                  )}
-                </button>
-                
-                {showNotifications && (
-                  <div className={styles.notificationDropdown}>
-                    <div className={styles.notificationHeader}>
-                      <h3>Notifications</h3>
-                      {unreadCount > 0 && (
-                        <button onClick={markAllAsRead} className={styles.markAllRead}>
-                          Mark all read
-                        </button>
-                      )}
-                    </div>
-                    <div className={styles.notificationList}>
-                      {notifications.length === 0 ? (
-                        <div className={styles.noNotifications}>
-                          <span>📭</span>
-                          <p>No notifications yet</p>
-                        </div>
-                      ) : (
-                        notifications.map(notif => (
-                          <div 
-                            key={notif.id} 
-                            className={`${styles.notificationItem} ${notif.read ? styles.notificationRead : ''}`}
-                            onClick={() => markAsRead(notif.id)}
-                          >
-                            <div className={styles.notificationIcon}>
-                              {notif.type === 'new_appointment' ? '📅' : '✅'}
-                            </div>
-                            <div className={styles.notificationContent}>
-                              <h4>{notif.title}</h4>
-                              <p>{notif.message}</p>
-                              <span className={styles.notificationTime}>
-                                {formatNotificationTime(notif.time)}
-                              </span>
-                            </div>
-                            {!notif.read && <div className={styles.unreadDot}></div>}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <button 
-                className={styles.manageSlotsBtn} 
-                onClick={() => setShowSlotModal(true)}
-                title="Manage available slots"
-              >
-                📅 Manage Slots
-              </button>
-              
-              <button 
-                className={styles.patientHistoryBtn} 
-                onClick={() => setShowHistoryModal(true)}
-                title="View patient history"
-              >
-                📋 Patient History
-              </button>
-              
-              <button 
-                className={styles.refreshBtn} 
-                onClick={() => form.id && fetchBookings(form.id)}
-                title="Refresh bookings"
-              >
-                🔄 Refresh
-              </button>
-              <button 
-                className={styles.editProfileBtn} 
-                onClick={() => setShowRegistrationForm(true)}
-              >
-                Edit Profile
-              </button>
-            </>
-          )}
-          <button className={styles.logoutBtn} onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className={styles.main}>
-        {showRegistrationForm ? (
-          <RegistrationForm
-            form={form}
-            isRegistered={isRegistered}
-            submitting={submitting}
-            popup={popup}
-            handleChange={handleChange}
-            handleSubmit={handleSubmit}
-            onCancel={isRegistered ? () => setShowRegistrationForm(false) : null}
-          />
-        ) : (
-          <div className={styles.dashboardContent}>
-            <div className={styles.welcomeSection}>
-              <h1 className={styles.welcomeTitle}>Welcome, Dr. {form.name?.split(' ')[form.name?.split(' ').length - 1]}</h1>
-              <p className={styles.welcomeSubtitle}>Manage your appointments and schedule</p>
-            </div>
-
-            <div className={styles.statsRow}>
-              <StatCard 
-                icon="📅" 
-                label="Total Bookings" 
-                value={bookings.length} 
-                color="#4f8ef7"
-              />
-              <StatCard 
-                icon="⏰" 
-                label="Today's Appointments" 
-                value={bookings.filter(b => {
-                  const bookingDate = typeof b.booking_date === 'string' 
-                    ? b.booking_date.split('T')[0]
-                    : formatDateForDB(new Date(b.booking_date));
-                  return bookingDate === formatDateForDB(new Date());
-                }).length}
-                color="#1dd9a0"
-              />
-              <StatCard 
-                icon="⭐" 
-                label="Rating" 
-                value={form.rating || "4.5"}
-                color="#EF9F27"
-              />
-            </div>
-
-            <Calendar
-              currentDate={currentDate}
-              setCurrentDate={setCurrentDate}
-              hasBookingsOnDate={hasBookingsOnDate}
-              onDateClick={handleDateClick}
+      {showRegistrationForm ? (
+        // Show registration form in centered layout
+        <>
+          <div className={styles.gridOverlay} />
+          <main className={styles.main}>
+            <RegistrationForm
+              form={form}
+              isRegistered={isRegistered}
+              submitting={submitting}
+              popup={popup}
+              handleChange={handleChange}
+              handleSubmit={handleSubmit}
+              onCancel={isRegistered ? () => setShowRegistrationForm(false) : null}
             />
+          </main>
+        </>
+      ) : (
+        // New Sidebar Layout
+        <>
+          {/* Sidebar */}
+          <aside className={styles.sidebar}>
+            {/* Sidebar Header - Doctor Profile */}
+            <div className={styles.sidebarHeader}>
+              <div className={styles.doctorProfile}>
+                <div className={styles.doctorAvatar}>
+                  {form.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'DR'}
+                </div>
+                <div className={styles.doctorInfo}>
+                  <h3>Dr. {form.name?.split(' ')[form.name?.split(' ').length - 1]}</h3>
+                  <p>{form.specialization || 'Specialist'}</p>
+                </div>
+              </div>
+              <p className={styles.greeting}>Welcome back! 👋</p>
+            </div>
+
+            {/* Sidebar Stats */}
+            <div className={styles.sidebarStats}>
+              <div className={styles.sidebarStatCard}>
+                <div className={`${styles.sidebarStatIcon} ${styles.yellow}`}>
+                  📅
+                </div>
+                <div className={styles.sidebarStatContent}>
+                  <h4>Total Bookings</h4>
+                  <p>{bookings.length}</p>
+                </div>
+              </div>
+              <div className={styles.sidebarStatCard}>
+                <div className={`${styles.sidebarStatIcon} ${styles.green}`}>
+                  ⏰
+                </div>
+                <div className={styles.sidebarStatContent}>
+                  <h4>Today</h4>
+                  <p>{bookings.filter(b => {
+                    const bookingDate = typeof b.booking_date === 'string' 
+                      ? b.booking_date.split('T')[0]
+                      : formatDateForDB(new Date(b.booking_date));
+                    return bookingDate === formatDateForDB(new Date());
+                  }).length}</p>
+                </div>
+              </div>
+              <div className={styles.sidebarStatCard}>
+                <div className={`${styles.sidebarStatIcon} ${styles.orange}`}>
+                  ⭐
+                </div>
+                <div className={styles.sidebarStatContent}>
+                  <h4>Rating</h4>
+                  <p>{form.rating || "4.5"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Navigation */}
+            <nav className={styles.sidebarNav}>
+              <ul>
+                <li className={styles.active}>📊 Dashboard</li>
+                <li onClick={() => setShowSlotModal(true)}>📅 Manage Slots</li>
+                <li onClick={() => setShowHistoryModal(true)}>📋 Patient History</li>
+                <li onClick={() => setShowRegistrationForm(true)}>⚙️ Edit Profile</li>
+              </ul>
+            </nav>
+
+            {/* Sidebar Footer */}
+            <div className={styles.sidebarFooter}>
+              <button 
+                className={styles.logoutBtn} 
+                onClick={handleLogout}
+                style={{ width: '100%' }}
+              >
+                🚪 Logout
+              </button>
+            </div>
+          </aside>
+
+          {/* Main Content Area */}
+          <div className={styles.mainContent}>
+            {/* Top Bar */}
+            <div className={styles.topBar}>
+              <div className={styles.topBarLeft}>
+                <h2>Dashboard</h2>
+                <p>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
+              <div className={styles.topBarRight}>
+                {/* Notification Bell */}
+                <div className={styles.notificationWrapper}>
+                  <button 
+                    className={styles.notificationBtn}
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    title="Notifications"
+                  >
+                    🔔
+                    {unreadCount > 0 && (
+                      <span className={styles.notificationBadge}>{unreadCount}</span>
+                    )}
+                  </button>
+                  
+                  {showNotifications && (
+                    <div className={styles.notificationDropdown}>
+                      <div className={styles.notificationHeader}>
+                        <h3>Notifications</h3>
+                        {unreadCount > 0 && (
+                          <button onClick={markAllAsRead} className={styles.markAllRead}>
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+                      <div className={styles.notificationList}>
+                        {notifications.length === 0 ? (
+                          <div className={styles.noNotifications}>
+                            <span>📭</span>
+                            <p>No notifications yet</p>
+                          </div>
+                        ) : (
+                          notifications.map(notif => (
+                            <div 
+                              key={notif.id} 
+                              className={`${styles.notificationItem} ${notif.read ? styles.notificationRead : ''}`}
+                              onClick={() => markAsRead(notif.id)}
+                            >
+                              <div className={styles.notificationIcon}>
+                                {notif.type === 'new_appointment' ? '📅' : '✅'}
+                              </div>
+                              <div className={styles.notificationContent}>
+                                <h4>{notif.title}</h4>
+                                <p>{notif.message}</p>
+                                <span className={styles.notificationTime}>
+                                  {formatNotificationTime(notif.time)}
+                                </span>
+                              </div>
+                              {!notif.read && <div className={styles.unreadDot}></div>}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <button 
+                  className={styles.refreshBtn} 
+                  onClick={() => form.id && fetchBookings(form.id)}
+                  title="Refresh bookings"
+                >
+                  🔄
+                </button>
+              </div>
+            </div>
+
+            {/* Dashboard Grid */}
+            <div className={styles.dashboardGrid}>
+              {/* Calendar Section */}
+              <div className={styles.calendarSection}>
+                <Calendar
+                  currentDate={currentDate}
+                  setCurrentDate={setCurrentDate}
+                  hasBookingsOnDate={hasBookingsOnDate}
+                  onDateClick={handleDateClick}
+                />
+              </div>
+
+              {/* Today's Appointments Sidebar */}
+              <div className={styles.appointmentsSidebar}>
+                <h3>Today's Appointments</h3>
+                <p className={styles.appointmentDate}>
+                  {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+                <div className={styles.appointmentsList}>
+                  {bookings.filter(b => {
+                    const bookingDate = typeof b.booking_date === 'string' 
+                      ? b.booking_date.split('T')[0]
+                      : formatDateForDB(new Date(b.booking_date));
+                    return bookingDate === formatDateForDB(new Date());
+                  }).length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>📅</div>
+                      <p className={styles.emptyText}>No appointments today</p>
+                    </div>
+                  ) : (
+                    bookings.filter(b => {
+                      const bookingDate = typeof b.booking_date === 'string' 
+                        ? b.booking_date.split('T')[0]
+                        : formatDateForDB(new Date(b.booking_date));
+                      return bookingDate === formatDateForDB(new Date());
+                    }).map(booking => (
+                      <div 
+                        key={booking.id} 
+                        className={`${styles.appointmentCard} ${
+                          booking.completed ? styles.confirmed : 
+                          booking.status === 'confirmed' ? styles.confirmed : 
+                          booking.status === 'rejected' ? styles.urgent : 
+                          styles.pending
+                        }`}
+                        onClick={() => handleDateClick(new Date())}
+                      >
+                        <div className={styles.appointmentHeader}>
+                          <div className={styles.patientInfo}>
+                            <h4>{booking.patient_name}</h4>
+                            <p>{booking.patient_contact}</p>
+                          </div>
+                          <div className={styles.appointmentTime}>
+                            {booking.booking_time}
+                          </div>
+                        </div>
+                        <span className={`${styles.appointmentStatus} ${
+                          booking.completed ? styles.confirmed : 
+                          booking.status === 'confirmed' ? styles.confirmed : 
+                          booking.status === 'rejected' ? styles.urgent : 
+                          styles.pending
+                        }`}>
+                          {booking.completed ? 'Completed' : booking.status || 'Pending'}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </>
+      )}
 
-        {/* Bookings Modal */}
-        {showBookingsModal && (
-          <BookingsModal
-            selectedDate={selectedDate}
-            dayBookings={dayBookings}
-            onClose={() => setShowBookingsModal(false)}
-            onCancel={handleCancelBooking}
-            onApprove={handleApproveBooking}
-            onReject={handleRejectBooking}
-            onComplete={handleCompleteAppointment}
-          />
-        )}
+      {/* Modals - Always available */}
+      {showBookingsModal && (
+        <BookingsModal
+          selectedDate={selectedDate}
+          dayBookings={dayBookings}
+          onClose={() => setShowBookingsModal(false)}
+          onCancel={handleCancelBooking}
+          onApprove={handleApproveBooking}
+          onReject={handleRejectBooking}
+          onComplete={handleCompleteAppointment}
+        />
+      )}
 
-        {/* Prescription Modal */}
-        {showPrescriptionModal && (
-          <PrescriptionModal
-            booking={selectedBooking}
-            form={prescriptionForm}
-            onChange={handlePrescriptionChange}
-            onSubmit={handleSubmitPrescription}
-            onClose={() => {
-              setShowPrescriptionModal(false);
-              setSelectedBooking(null);
-            }}
-          />
-        )}
+      {showPrescriptionModal && (
+        <PrescriptionModal
+          booking={selectedBooking}
+          form={prescriptionForm}
+          onChange={handlePrescriptionChange}
+          onSubmit={handleSubmitPrescription}
+          onClose={() => {
+            setShowPrescriptionModal(false);
+            setSelectedBooking(null);
+          }}
+        />
+      )}
 
-        {/* Slot Management Modal */}
-        {showSlotModal && (
-          <SlotManagementModal
-            slotDate={slotDate}
-            setSlotDate={setSlotDate}
-            selectedTimes={selectedTimes}
-            toggleTimeSelection={toggleTimeSelection}
-            timeSlots={timeSlots}
-            allSlots={allSlots}
-            onCreateSlots={handleCreateSlots}
-            onDeleteSlot={handleDeleteSlot}
-            onClose={() => {
-              setShowSlotModal(false);
-              setSlotDate('');
-              setSelectedTimes([]);
-            }}
-          />
-        )}
+      {showSlotModal && (
+        <SlotManagementModal
+          slotDate={slotDate}
+          setSlotDate={setSlotDate}
+          selectedTimes={selectedTimes}
+          toggleTimeSelection={toggleTimeSelection}
+          timeSlots={timeSlots}
+          allSlots={allSlots}
+          onCreateSlots={handleCreateSlots}
+          onDeleteSlot={handleDeleteSlot}
+          onClose={() => {
+            setShowSlotModal(false);
+            setSlotDate('');
+            setSelectedTimes([]);
+          }}
+        />
+      )}
 
-        {/* Patient History Modal */}
-        {showHistoryModal && (
-          <PatientHistoryModal
-            searchPhone={searchPhone}
-            setSearchPhone={setSearchPhone}
-            patientHistory={patientHistory}
-            loadingHistory={loadingHistory}
-            onSearch={handleSearchHistory}
-            onClose={() => {
-              setShowHistoryModal(false);
-              setSearchPhone('');
-              setPatientHistory(null);
-            }}
-          />
-        )}
+      {showHistoryModal && (
+        <PatientHistoryModal
+          searchPhone={searchPhone}
+          setSearchPhone={setSearchPhone}
+          patientHistory={patientHistory}
+          loadingHistory={loadingHistory}
+          onSearch={handleSearchHistory}
+          onClose={() => {
+            setShowHistoryModal(false);
+            setSearchPhone('');
+            setPatientHistory(null);
+          }}
+        />
+      )}
 
-        {/* Status popup */}
-        {popup.msg && !showRegistrationForm && (
-          <div className={`${styles.floatingPopup} ${popup.isError ? styles.popupError : ""}`}>
-            <span className={styles.popupIcon}>{popup.isError ? "⚠" : "✓"}</span>
-            {popup.msg}
-          </div>
-        )}
-      </main>
+      {/* Status popup */}
+      {popup.msg && !showRegistrationForm && (
+        <div className={`${styles.floatingPopup} ${popup.isError ? styles.popupError : ""}`}>
+          <span className={styles.popupIcon}>{popup.isError ? "⚠" : "✓"}</span>
+          {popup.msg}
+        </div>
+      )}
     </div>
   );
 }

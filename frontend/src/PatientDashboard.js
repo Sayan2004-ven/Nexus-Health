@@ -30,6 +30,13 @@ export default function PatientDashboard() {
   
   // Track reports for each appointment
   const [appointmentReports, setAppointmentReports] = useState({});
+  
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [expandedAppointment, setExpandedAppointment] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('date-newest');
 
   useEffect(() => {
     if (!user) {
@@ -37,14 +44,15 @@ export default function PatientDashboard() {
       return;
     }
     
-    fetchBookings();
+    // Initial fetch with loading spinner
+    fetchBookings(false);
     fetchPrescriptions();
     
-    // Poll for booking updates every 5 seconds
+    // Poll for booking updates every 30 seconds (silent updates)
     const pollInterval = setInterval(() => {
-      fetchBookings();
+      fetchBookings(true); // Silent update - no loading spinner
       fetchPrescriptions();
-    }, 5000); // Check every 5 seconds
+    }, 30000); // Check every 30 seconds
 
     return () => clearInterval(pollInterval);
   }, [user, navigate]);
@@ -59,10 +67,14 @@ export default function PatientDashboard() {
     });
   }, [bookings]);
 
-  const fetchBookings = () => {
+  const fetchBookings = (silent = false) => {
     if (!user?.id) return;
     
-    setLoading(true);
+    // Only show loading spinner on initial load, not during polling
+    if (!silent) {
+      setLoading(true);
+    }
+    
     axios
       .get(`http://localhost:8081/api/patient-bookings/${user.id}`)
       .then((res) => {
@@ -120,11 +132,15 @@ export default function PatientDashboard() {
           
           setBookings(newBookings);
         }
-        setLoading(false);
+        if (!silent) {
+          setLoading(false);
+        }
       })
       .catch((err) => {
         console.error("Failed to fetch bookings:", err);
-        setLoading(false);
+        if (!silent) {
+          setLoading(false);
+        }
       });
   };
 
@@ -314,8 +330,8 @@ export default function PatientDashboard() {
       return { status: "Rejected", className: styles.statusRejected };
     }
     
-    // If confirmed and past, show completed
-    if (status === 'confirmed' && appointmentDateTime < now) {
+    // If marked as completed by doctor (prescription created), show completed
+    if (booking.completed) {
       return { status: "Completed", className: styles.statusCompleted };
     }
     
@@ -364,6 +380,56 @@ export default function PatientDashboard() {
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
+  // Get unique doctors for filter
+  const uniqueDoctors = [...new Map(bookings.map(b => [b.doctor_id, { id: b.doctor_id, name: b.doctor_name, specialization: b.specialization }])).values()];
+  
+  // Filter bookings based on status, doctor, and search
+  const filteredBookings = bookings.filter(booking => {
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesDoctor = booking.doctor_name.toLowerCase().includes(query);
+      const matchesSpec = booking.specialization.toLowerCase().includes(query);
+      const matchesCity = booking.city.toLowerCase().includes(query);
+      const matchesPatient = booking.patient_name.toLowerCase().includes(query);
+      if (!matchesDoctor && !matchesSpec && !matchesCity && !matchesPatient) return false;
+    }
+    
+    // Status filter
+    if (statusFilter !== 'all') {
+      const status = booking.status || 'pending';
+      if (statusFilter === 'pending' && status !== 'pending') return false;
+      if (statusFilter === 'confirmed' && status !== 'confirmed') return false;
+      if (statusFilter === 'completed' && !booking.completed) return false;
+      if (statusFilter === 'cancelled' && status !== 'rejected') return false;
+    }
+    
+    // Doctor filter
+    if (selectedDoctor && booking.doctor_id !== selectedDoctor) return false;
+    
+    return true;
+  });
+  
+  // Sort bookings
+  const sortedBookings = [...filteredBookings].sort((a, b) => {
+    const dateA = new Date(`${a.booking_date}T${a.booking_time}`);
+    const dateB = new Date(`${b.booking_date}T${b.booking_time}`);
+    
+    if (sortBy === 'date-newest') return dateB - dateA;
+    if (sortBy === 'date-oldest') return dateA - dateB;
+    if (sortBy === 'doctor-name') return a.doctor_name.localeCompare(b.doctor_name);
+    return 0;
+  });
+  
+  // Count by status
+  const statusCounts = {
+    all: bookings.length,
+    pending: bookings.filter(b => (b.status || 'pending') === 'pending').length,
+    confirmed: bookings.filter(b => b.status === 'confirmed' && !b.completed).length,
+    completed: bookings.filter(b => b.completed).length,
+    cancelled: bookings.filter(b => b.status === 'rejected').length
+  };
+
   const upcomingBookings = bookings.filter((b) => {
     const appointmentDateTime = new Date(`${b.booking_date}T${b.booking_time}`);
     return appointmentDateTime >= new Date();
@@ -375,30 +441,180 @@ export default function PatientDashboard() {
   });
 
   return (
-    <div className={styles.container}>
-      <div className={styles.meshBackground}>
-        <div className={styles.meshGradient1}></div>
-        <div className={styles.meshGradient2}></div>
-      </div>
+  <div className={styles.container}>
+    {/* Navbar */}
+    <PatientNavbar />
 
-      {/* Navbar */}
-      <PatientNavbar />
-
-      <div className={styles.content}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div className={styles.welcomeSection}>
-              <div className={styles.avatarCircle}>
-                {user?.fname?.charAt(0)}{user?.lname?.charAt(0)}
-              </div>
-              <div>
-                <h1 className={styles.title}>My Appointments</h1>
-                <p className={styles.subtitle}>View and manage your healthcare appointments</p>
-              </div>
+    {/* Dashboard Layout */}
+    <div className={styles.dashboardLayout}>
+      {/* Left Sidebar - Filters */}
+      <aside className={styles.sidebar}>
+        {/* Sidebar Header */}
+        <div className={styles.sidebarHeader}>
+          <div className={styles.welcomeSection}>
+            <div className={styles.avatarCircle}>
+              {user?.fname?.charAt(0)}{user?.lname?.charAt(0)}
+            </div>
+            <div>
+              <h2 className={styles.sidebarTitle}>My Appointments</h2>
+              <p className={styles.sidebarSubtitle}>View and manage your bookings</p>
             </div>
           </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className={styles.searchSection}>
+          <div className={styles.searchBox}>
+            <i className="fas fa-search"></i>
+            <input
+              type="text"
+              placeholder="Search doctor, type..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.searchInput}
+            />
+            {searchQuery && (
+              <button 
+                className={styles.clearSearch}
+                onClick={() => setSearchQuery('')}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className={styles.statsSection}>
+          <h3 className={styles.filterTitle}>Status</h3>
+          <div className={styles.statsCards}>
+            <div 
+              className={`${styles.statCard} ${statusFilter === 'all' ? styles.active : ''}`}
+              onClick={() => setStatusFilter('all')}
+            >
+              <div className={styles.statLeft}>
+                <div className={`${styles.statIconBox} ${styles.blue}`}>
+                  <i className="fas fa-calendar-alt"></i>
+                </div>
+                <span className={styles.statLabel}>All</span>
+              </div>
+              <span className={styles.statCount}>{statusCounts.all}</span>
+            </div>
+            <div 
+              className={`${styles.statCard} ${statusFilter === 'pending' ? styles.active : ''}`}
+              onClick={() => setStatusFilter('pending')}
+            >
+              <div className={styles.statLeft}>
+                <div className={`${styles.statIconBox} ${styles.yellow}`}>
+                  <i className="fas fa-clock"></i>
+                </div>
+                <span className={styles.statLabel}>Pending</span>
+              </div>
+              <span className={styles.statCount}>{statusCounts.pending}</span>
+            </div>
+            <div 
+              className={`${styles.statCard} ${statusFilter === 'confirmed' ? styles.active : ''}`}
+              onClick={() => setStatusFilter('confirmed')}
+            >
+              <div className={styles.statLeft}>
+                <div className={`${styles.statIconBox} ${styles.green}`}>
+                  <i className="fas fa-check-circle"></i>
+                </div>
+                <span className={styles.statLabel}>Confirmed</span>
+              </div>
+              <span className={styles.statCount}>{statusCounts.confirmed}</span>
+            </div>
+            <div 
+              className={`${styles.statCard} ${statusFilter === 'completed' ? styles.active : ''}`}
+              onClick={() => setStatusFilter('completed')}
+            >
+              <div className={styles.statLeft}>
+                <div className={`${styles.statIconBox} ${styles.blue}`}>
+                  <i className="fas fa-check-double"></i>
+                </div>
+                <span className={styles.statLabel}>Completed</span>
+              </div>
+              <span className={styles.statCount}>{statusCounts.completed}</span>
+            </div>
+            <div 
+              className={`${styles.statCard} ${statusFilter === 'cancelled' ? styles.active : ''}`}
+              onClick={() => setStatusFilter('cancelled')}
+            >
+              <div className={styles.statLeft}>
+                <div className={`${styles.statIconBox} ${styles.red}`}>
+                  <i className="fas fa-times-circle"></i>
+                </div>
+                <span className={styles.statLabel}>Cancelled</span>
+              </div>
+              <span className={styles.statCount}>{statusCounts.cancelled}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Doctors Filter */}
+        <div className={styles.filterSection}>
+          <h3 className={styles.filterTitle}>Doctor</h3>
+          <div className={styles.doctorsList}>
+            <div 
+              className={`${styles.doctorItem} ${!selectedDoctor ? styles.active : ''}`}
+              onClick={() => setSelectedDoctor(null)}
+            >
+              <div className={styles.doctorAvatar} style={{background: 'linear-gradient(135deg, #667eea, #764ba2)'}}>
+                <i className="fas fa-user-md"></i>
+              </div>
+              <div className={styles.doctorInfo}>
+                <p className={styles.doctorName}>All Doctors</p>
+                <p className={styles.doctorSpec}>{uniqueDoctors.length} doctors</p>
+              </div>
+              <span className={styles.doctorCount}>{bookings.length}</span>
+            </div>
+            {uniqueDoctors.map(doctor => {
+              const doctorBookings = bookings.filter(b => b.doctor_id === doctor.id).length;
+              return (
+                <div 
+                  key={doctor.id}
+                  className={`${styles.doctorItem} ${selectedDoctor === doctor.id ? styles.active : ''}`}
+                  onClick={() => setSelectedDoctor(doctor.id)}
+                >
+                  <div className={styles.doctorAvatar}>
+                    {doctor.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <div className={styles.doctorInfo}>
+                    <p className={styles.doctorName}>Dr. {doctor.name}</p>
+                    <p className={styles.doctorSpec}>{doctor.specialization}</p>
+                  </div>
+                  <span className={styles.doctorCount}>{doctorBookings}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sort By */}
+        <div className={styles.filterSection}>
+          <h3 className={styles.filterTitle}>Sort By</h3>
+          <select 
+            className={styles.sortSelect}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="date-newest">Date: Newest First</option>
+            <option value="date-oldest">Date: Oldest First</option>
+            <option value="doctor-name">Doctor Name</option>
+          </select>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className={styles.mainContent}>
+        {/* Content Header */}
+        <div className={styles.contentHeader}>
+          <div className={styles.headerLeft}>
+            <h1>All Appointments ({sortedBookings.length})</h1>
+            <p>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          </div>
           <div className={styles.headerActions}>
-            {/* Notification Bell */}
+            {/* Notification Bell - KEEP EXISTING CODE FROM OLD VERSION */}
             <div className={styles.notificationWrapper}>
               <button 
                 className={styles.notificationBtn}
@@ -468,63 +684,31 @@ export default function PatientDashboard() {
               Book New Appointment
             </button>
           </div>
-        </header>
-
-        <div className={styles.statsGrid}>
-          <div className={styles.statCard} style={{ '--index': 0 }}>
-            <div className={styles.statIconWrapper}>
-              <div className={styles.statIcon}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-              </div>
-            </div>
-            <div className={styles.statInfo}>
-              <div className={styles.statValue}>{bookings.length}</div>
-              <div className={styles.statLabel}>Total Appointments</div>
-            </div>
-          </div>
-          <div className={styles.statCard} style={{ '--index': 1 }}>
-            <div className={styles.statIconWrapper}>
-              <div className={styles.statIcon}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-              </div>
-            </div>
-            <div className={styles.statInfo}>
-              <div className={styles.statValue}>{upcomingBookings.length}</div>
-              <div className={styles.statLabel}>Upcoming</div>
-            </div>
-          </div>
-          <div className={styles.statCard} style={{ '--index': 2 }}>
-            <div className={styles.statIconWrapper}>
-              <div className={styles.statIcon}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-            </div>
-            <div className={styles.statInfo}>
-              <div className={styles.statValue}>{pastBookings.length}</div>
-              <div className={styles.statLabel}>Completed</div>
-            </div>
-          </div>
         </div>
 
+        {/* Appointments List */}
         {loading ? (
           <div className={styles.loading}>Loading your appointments...</div>
-        ) : bookings.length === 0 ? (
+        ) : sortedBookings.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>
               <i className="fas fa-clipboard-list"></i>
             </div>
-            <h3>No Appointments Yet</h3>
-            <p>You haven't booked any appointments. Start by finding a doctor!</p>
+            <h3>No Appointments Found</h3>
+            <p>{searchQuery ? 'No results match your search' : statusFilter !== 'all' ? 'Try changing your filters' : 'You haven\'t booked any appointments yet'}</p>
+            {(searchQuery || statusFilter !== 'all' || selectedDoctor) && (
+              <button
+                className={styles.btnSecondary}
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setSelectedDoctor(null);
+                }}
+                style={{marginBottom: '1rem'}}
+              >
+                Clear Filters
+              </button>
+            )}
             <button
               className={styles.btnPrimary}
               onClick={() => navigate("/hospitals")}
@@ -533,83 +717,95 @@ export default function PatientDashboard() {
             </button>
           </div>
         ) : (
-          <>
-            {/* Show ALL appointments in one section */}
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>All Appointments ({bookings.length})</h2>
-              <div className={styles.bookingsGrid}>
-                {bookings.map((booking, index) => {
-                  const statusInfo = getBookingStatus(booking);
-                  const isPast = new Date(`${booking.booking_date}T${booking.booking_time}`) < new Date();
-                  const isRejected = booking.status === 'rejected';
-                  const isCompleted = booking.completed;
-                  const hasPrescription = prescriptions[booking.id];
-                  const reports = appointmentReports[booking.id] || [];
-                  const eligibility = uploadEligibility[booking.id];
-                  const canUpload = eligibility?.eligible && isCompleted;
-                  
-                  return (
-                    <div key={booking.id} className={`${styles.bookingCard} ${isPast || isRejected ? styles.pastBooking : ''}`} style={{ '--index': index }}>
-                      <div className={styles.bookingHeader}>
-                        <div>
-                          <h3 className={styles.doctorName}>
-                            Dr. {booking.doctor_name}
-                          </h3>
-                          <p className={styles.specialization}>
-                            {booking.specialization}
-                          </p>
-                        </div>
-                        <span className={`${styles.statusBadge} ${statusInfo.className}`}>
-                          {statusInfo.status}
-                        </span>
+          <div className={styles.appointmentsList}>
+            {sortedBookings.map((booking) => {
+              const statusInfo = getBookingStatus(booking);
+              const isExpanded = expandedAppointment === booking.id;
+              const hasPrescription = prescriptions[booking.id];
+              const reports = appointmentReports[booking.id] || [];
+              const eligibility = uploadEligibility[booking.id];
+              const canUpload = eligibility?.eligible && booking.completed;
+              
+              return (
+                <div key={booking.id} className={styles.appointmentItem}>
+                  {/* Appointment Header */}
+                  <div 
+                    className={styles.appointmentHeader}
+                    onClick={() => setExpandedAppointment(isExpanded ? null : booking.id)}
+                  >
+                    <div className={styles.appointmentLeft}>
+                      <div className={styles.appointmentAvatar}>
+                        {booking.doctor_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </div>
-                      <div className={styles.bookingDetails}>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailIcon}>
+                      <div className={styles.appointmentInfo}>
+                        <h3 className={styles.appointmentDoctor}>Dr. {booking.doctor_name}</h3>
+                        <p className={styles.appointmentSpec}>{booking.specialization}</p>
+                      </div>
+                    </div>
+                    <div className={styles.appointmentRight}>
+                      <div className={styles.appointmentDateTime}>
+                        <p className={styles.appointmentDate}>{formatDate(booking.booking_date)}</p>
+                        <p className={styles.appointmentTime}>{formatTime(booking.booking_time)}</p>
+                      </div>
+                      <span className={`${styles.statusBadge} ${statusInfo.className}`}>
+                        {statusInfo.status}
+                      </span>
+                      <button className={styles.expandBtn}>
+                        {isExpanded ? '▲' : '▼'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Appointment Details (Expanded) */}
+                  {isExpanded && (
+                    <div className={styles.appointmentDetails}>
+                      <div className={styles.detailsGrid}>
+                        <div className={styles.detailItem}>
+                          <div className={styles.detailIcon}>
                             <i className="fas fa-map-marker-alt"></i>
-                          </span>
-                          <span>{booking.city}</span>
+                          </div>
+                          <div className={styles.detailContent}>
+                            <p className={styles.detailLabel}>Location</p>
+                            <p className={styles.detailValue}>{booking.city}</p>
+                          </div>
                         </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailIcon}>
-                            <i className="fas fa-calendar-alt"></i>
-                          </span>
-                          <span>{formatDate(booking.booking_date)}</span>
-                        </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailIcon}>
-                            <i className="fas fa-clock"></i>
-                          </span>
-                          <span>{formatTime(booking.booking_time)}</span>
-                        </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailIcon}>
+                        <div className={styles.detailItem}>
+                          <div className={styles.detailIcon}>
                             <i className="fas fa-rupee-sign"></i>
-                          </span>
-                          <span>₹{booking.consultation_fee}</span>
+                          </div>
+                          <div className={styles.detailContent}>
+                            <p className={styles.detailLabel}>Consultation Fee</p>
+                            <p className={styles.detailValue}>₹{booking.consultation_fee}</p>
+                          </div>
                         </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailIcon}>
+                        <div className={styles.detailItem}>
+                          <div className={styles.detailIcon}>
                             <i className="fas fa-user"></i>
-                          </span>
-                          <span>{booking.patient_name}</span>
+                          </div>
+                          <div className={styles.detailContent}>
+                            <p className={styles.detailLabel}>Patient Name</p>
+                            <p className={styles.detailValue}>{booking.patient_name}</p>
+                          </div>
                         </div>
-                        <div className={styles.detailRow}>
-                          <span className={styles.detailIcon}>
+                        <div className={styles.detailItem}>
+                          <div className={styles.detailIcon}>
                             <i className="fas fa-phone-alt"></i>
-                          </span>
-                          <span>{booking.patient_contact}</span>
+                          </div>
+                          <div className={styles.detailContent}>
+                            <p className={styles.detailLabel}>Contact</p>
+                            <p className={styles.detailValue}>{booking.patient_contact}</p>
+                          </div>
                         </div>
                       </div>
-                      
+
                       {/* Action Buttons */}
                       <div className={styles.actionButtons}>
-                        {isCompleted && hasPrescription && (
+                        {booking.completed && hasPrescription && (
                           <button
                             className={styles.btnDownload}
                             onClick={() => downloadPrescription(hasPrescription.id)}
                           >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                               <polyline points="7 10 12 15 17 10"></polyline>
                               <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -623,7 +819,7 @@ export default function PatientDashboard() {
                             className={styles.btnUpload}
                             onClick={() => openUploadModal(booking)}
                           >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                               <polyline points="17 8 12 3 7 8"></polyline>
                               <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -632,35 +828,7 @@ export default function PatientDashboard() {
                           </button>
                         )}
                         
-                        {reports.length > 0 && (
-                          <div className={styles.reportsSection}>
-                            <h4 className={styles.reportsTitle}>
-                              <i className="fas fa-file-medical"></i> Uploaded Reports ({reports.length})
-                            </h4>
-                            <div className={styles.reportsList}>
-                              {reports.map(report => (
-                                <div key={report.id} className={styles.reportItem}>
-                                  <div className={styles.reportInfo}>
-                                    <i className={`fas ${report.file_type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}></i>
-                                    <span className={styles.reportName}>{report.report_name}</span>
-                                    <span className={styles.reportDate}>
-                                      {new Date(report.uploaded_at).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                  <button
-                                    className={styles.btnDownloadReport}
-                                    onClick={() => downloadReport(report.id)}
-                                    title="Download Report"
-                                  >
-                                    <i className="fas fa-download"></i>
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {!isPast && !isRejected && booking.status !== 'confirmed' && (
+                        {!booking.completed && booking.status !== 'confirmed' && booking.status !== 'rejected' && (
                           <button
                             className={styles.btnCancel}
                             onClick={() => cancelBooking(booking.id)}
@@ -669,89 +837,119 @@ export default function PatientDashboard() {
                           </button>
                         )}
                       </div>
+
+                      {/* Reports Section */}
+                      {reports.length > 0 && (
+                        <div className={styles.reportsSection}>
+                          <h4 className={styles.reportsTitle}>
+                            <i className="fas fa-file-medical"></i> Uploaded Reports ({reports.length})
+                          </h4>
+                          <div className={styles.reportsList}>
+                            {reports.map(report => (
+                              <div key={report.id} className={styles.reportItem}>
+                                <div className={styles.reportInfo}>
+                                  <i className={`fas ${report.file_type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}></i>
+                                  <span className={styles.reportName}>{report.report_name}</span>
+                                  <span className={styles.reportDate}>
+                                    {new Date(report.uploaded_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <button
+                                  className={styles.btnDownloadReport}
+                                  onClick={() => downloadReport(report.id)}
+                                  title="Download Report"
+                                >
+                                  <i className="fas fa-download"></i>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
-      </div>
-      
-      {/* Upload Report Modal */}
-      {showUploadModal && selectedAppointment && (
-        <div className={styles.modalOverlay} onClick={closeUploadModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>Upload Medical Report</h2>
-              <button className={styles.closeBtn} onClick={closeUploadModal}>×</button>
+      </main>
+    </div>
+    
+    {/* Upload Report Modal - KEEP EXISTING MODAL CODE */}
+    {showUploadModal && selectedAppointment && (
+      <div className={styles.modalOverlay} onClick={closeUploadModal}>
+        <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <h2>Upload Medical Report</h2>
+            <button className={styles.closeBtn} onClick={closeUploadModal}>×</button>
+          </div>
+          
+          <div className={styles.modalBody}>
+            <div className={styles.appointmentInfo}>
+              <h3>Appointment Details</h3>
+              <p><strong>Doctor:</strong> Dr. {selectedAppointment.doctor_name}</p>
+              <p><strong>Date:</strong> {formatDate(selectedAppointment.booking_date)}</p>
+              <p><strong>Time:</strong> {formatTime(selectedAppointment.booking_time)}</p>
             </div>
             
-            <div className={styles.modalBody}>
-              <div className={styles.appointmentInfo}>
-                <h3>Appointment Details</h3>
-                <p><strong>Doctor:</strong> Dr. {selectedAppointment.doctor_name}</p>
-                <p><strong>Date:</strong> {formatDate(selectedAppointment.booking_date)}</p>
-                <p><strong>Time:</strong> {formatTime(selectedAppointment.booking_time)}</p>
-              </div>
+            <div className={styles.uploadSection}>
+              <label className={styles.fileInputLabel}>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  className={styles.fileInput}
+                />
+                <div className={styles.fileInputButton}>
+                  <i className="fas fa-cloud-upload-alt"></i>
+                  <span>Choose File</span>
+                </div>
+              </label>
               
-              <div className={styles.uploadSection}>
-                <label className={styles.fileInputLabel}>
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileChange}
-                    className={styles.fileInput}
-                  />
-                  <div className={styles.fileInputButton}>
-                    <i className="fas fa-cloud-upload-alt"></i>
-                    <span>Choose File</span>
-                  </div>
-                </label>
-                
-                {uploadFile && (
-                  <div className={styles.selectedFile}>
-                    <i className={`fas ${uploadFile.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}></i>
-                    <span>{uploadFile.name}</span>
-                    <span className={styles.fileSize}>
-                      ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                )}
-                
-                <p className={styles.uploadNote}>
-                  <i className="fas fa-info-circle"></i>
-                  Accepted formats: PDF, JPG, PNG (Max 5MB)
+              {uploadFile && (
+                <div className={styles.selectedFile}>
+                  <i className={`fas ${uploadFile.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}></i>
+                  <span>{uploadFile.name}</span>
+                  <span className={styles.fileSize}>
+                    ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                </div>
+              )}
+              
+              <p className={styles.uploadNote}>
+                <i className="fas fa-info-circle"></i>
+                Accepted formats: PDF, JPG, PNG (Max 5MB)
+              </p>
+              
+              {uploadEligibility[selectedAppointment.id] && (
+                <p className={styles.uploadWarning}>
+                  <i className="fas fa-clock"></i>
+                  {uploadEligibility[selectedAppointment.id].message}
                 </p>
-                
-                {uploadEligibility[selectedAppointment.id] && (
-                  <p className={styles.uploadWarning}>
-                    <i className="fas fa-clock"></i>
-                    {uploadEligibility[selectedAppointment.id].message}
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            <div className={styles.modalFooter}>
-              <button 
-                className={styles.btnSecondary} 
-                onClick={closeUploadModal}
-                disabled={uploading}
-              >
-                Cancel
-              </button>
-              <button 
-                className={styles.btnPrimary} 
-                onClick={handleUploadReport}
-                disabled={!uploadFile || uploading}
-              >
-                {uploading ? 'Uploading...' : 'Upload Report'}
-              </button>
+              )}
             </div>
           </div>
+          
+          <div className={styles.modalFooter}>
+            <button 
+              className={styles.btnSecondary} 
+              onClick={closeUploadModal}
+              disabled={uploading}
+            >
+              Cancel
+            </button>
+            <button 
+              className={styles.btnPrimary} 
+              onClick={handleUploadReport}
+              disabled={!uploadFile || uploading}
+            >
+              {uploading ? 'Uploading...' : 'Upload Report'}
+            </button>
+          </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+)
 }
