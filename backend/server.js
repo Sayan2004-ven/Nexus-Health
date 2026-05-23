@@ -81,6 +81,7 @@ db.connect(err => {
   if (err) console.error("DB connection failed:", err);
   else {
     console.log(`MySQL connected to ${process.env.DB_HOST || "localhost"}:${process.env.DB_PORT || 3306}/${process.env.DB_NAME || "users"}`);
+    ensureUsersAdminColumns();
     ensureUsersRoleColumn();
     ensureDoctorsUserIdColumn();
     ensureBookingsTable();
@@ -102,6 +103,21 @@ function isValidPhone(phone) {
 }
 function normalizeRole(role) {
   return role === "doctor" ? "doctor" : "patient";
+}
+
+function ensureUsersAdminColumns() {
+  const queries = [
+    "ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE",
+    "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+    "ALTER TABLE users ADD COLUMN last_login TIMESTAMP NULL DEFAULT NULL"
+  ];
+
+  queries.forEach((query) => {
+    db.query(query, (err) => {
+      if (!err || err.code === "ER_DUP_FIELDNAME") return;
+      console.error("Could not ensure users admin column:", err.message);
+    });
+  });
 }
 
 function ensureUsersRoleColumn() {
@@ -292,9 +308,17 @@ app.post("/login", (req, res) => {
         return res.json({ success: false, message: `${role === "doctor" ? "Doctor" : "User"} account not found` });
 
       const user = results[0];
+      if (!user.is_active) {
+        return res.json({ success: false, message: "This account has been deactivated. Please contact the administrator." });
+      }
       const match = await bcrypt.compare(password, user.password);
 
       if (match) {
+        db.query("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [user.id], (updateErr) => {
+          if (updateErr) {
+            console.error("Failed to update last_login:", updateErr.message);
+          }
+        });
         const { password, ...userData } = user;
         res.json({ success: true, user: userData });
       } else {
@@ -313,13 +337,13 @@ app.get("/user/:id", (req, res) => {
 });
 
 app.put("/update/:id", (req, res) => {
-  const { fname, lname, email } = req.body;
+  const { fname, lname, email, phone, role } = req.body;
 
   db.query(
-    "UPDATE users SET fname=?, lname=?, email=? WHERE id=?",
-    [fname, lname, email, req.params.id],
+    "UPDATE users SET fname=?, lname=?, email=?, phone=?, role=? WHERE id=?",
+    [fname, lname, email, phone, normalizeRole(role), req.params.id],
     (err) => {
-      if (err) return res.json({ success: false });
+      if (err) return res.json({ success: false, message: err.message });
       res.json({ success: true });
     }
   );
@@ -349,12 +373,198 @@ app.post("/admin-login", (req, res) => {
 // ─── ALL USERS (Admin Dashboard) ───
 app.get("/all-users", (req, res) => {
   db.query(
-    "SELECT id, fname, lname, email, phone, role FROM users",
+    `SELECT id, fname, lname, email, phone, role,
+            COALESCE(is_active, TRUE) AS is_active,
+            created_at,
+            last_login
+     FROM users
+     ORDER BY id DESC`,
     (err, results) => {
       if (err) return res.json({ success: false, message: err.message });
       res.json({ success: true, users: results });
     }
   );
+});
+
+app.get("/admin/dashboard-summary", (req, res) => {
+  const summaryQuery = `
+    SELECT
+      (SELECT COUNT(*) FROM users) AS total_users,
+      (SELECT COUNT(*) FROM users WHERE role = 'doctor') AS total_doctors,
+      (SELECT COUNT(*) FROM users WHERE role = 'patient' OR role IS NULL) AS total_patients,
+      (SELECT COUNT(*) FROM bookings) AS total_appointments,
+      (SELECT COUNT(*) FROM bookings WHERE booking_date = CURDATE()) AS today_appointments,
+      (
+        SELECT COALESCE(ROUND(SUM(COALESCE(d.consultation_fee, 0)), 2), 0)
+        FROM bookings b
+        LEFT JOIN doctors d ON b.doctor_id = d.id
+        WHERE b.completed = TRUE
+      ) AS total_revenue
+  `;
+
+  const activityQuery = `
+    SELECT * FROM (
+      SELECT
+        CONCAT(COALESCE(fname, ''), ' ', COALESCE(lname, '')) AS actor_name,
+        role AS actor_role,
+        'registration' AS activity_type,
+        created_at AS activity_time,
+        CONCAT(COALESCE(fname, 'User'), ' ', COALESCE(lname, ''), ' registered as ', IF(role = 'doctor', 'Doctor', 'Patient')) AS activity_text
+      FROM users
+      WHERE created_at IS NOT NULL
+
+      UNION ALL
+
+      SELECT
+        patient_name AS actor_name,
+        'patient' AS actor_role,
+        'appointment' AS activity_type,
+        created_at AS activity_time,
+        CONCAT(patient_name, ' booked an appointment with Dr. ', COALESCE(d.name, 'Unknown')) AS activity_text
+      FROM bookings b
+      LEFT JOIN doctors d ON b.doctor_id = d.id
+
+      UNION ALL
+
+      SELECT
+        COALESCE(d.name, 'Doctor') AS actor_name,
+        'doctor' AS actor_role,
+        'prescription' AS activity_type,
+        p.created_at AS activity_time,
+        CONCAT('Dr. ', COALESCE(d.name, 'Unknown'), ' completed appointment #', p.appointment_id) AS activity_text
+      FROM prescriptions p
+      LEFT JOIN doctors d ON p.doctor_id = d.id
+    ) activity_feed
+    ORDER BY activity_time DESC
+    LIMIT 10
+  `;
+
+  db.query(summaryQuery, (summaryErr, summaryResults) => {
+    if (summaryErr) {
+      return res.status(500).json({ success: false, message: summaryErr.message });
+    }
+
+    db.query(activityQuery, (activityErr, activityResults) => {
+      res.json({
+        success: true,
+        summary: summaryResults[0],
+        activities: activityErr ? [] : activityResults,
+        activityError: activityErr ? activityErr.message : null
+      });
+    });
+  });
+});
+
+app.get("/admin/appointments", (req, res) => {
+  const query = `
+    SELECT
+      b.id,
+      b.booking_date,
+      b.booking_time,
+      b.created_at,
+      b.status,
+      b.completed,
+      b.patient_id,
+      b.patient_name,
+      b.patient_contact,
+      d.id AS doctor_id,
+      d.name AS doctor_name,
+      d.specialization,
+      d.consultation_fee
+    FROM bookings b
+    LEFT JOIN doctors d ON b.doctor_id = d.id
+    ORDER BY b.booking_date DESC, b.booking_time DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, appointments: results });
+  });
+});
+
+app.get("/admin/user-details/:id", (req, res) => {
+  const userId = req.params.id;
+
+  db.query(
+    `SELECT id, fname, lname, email, phone, role,
+            COALESCE(is_active, TRUE) AS is_active,
+            created_at, last_login
+     FROM users
+     WHERE id = ?`,
+    [userId],
+    (userErr, userResults) => {
+      if (userErr) return res.status(500).json({ success: false, message: userErr.message });
+      if (userResults.length === 0) return res.status(404).json({ success: false, message: "User not found" });
+
+      const user = userResults[0];
+      const params = [userId];
+      let appointmentQuery = `
+        SELECT
+          b.id,
+          b.booking_date,
+          b.booking_time,
+          b.status,
+          b.completed,
+          b.patient_name,
+          b.patient_contact,
+          d.name AS doctor_name,
+          d.specialization,
+          d.consultation_fee
+        FROM bookings b
+        LEFT JOIN doctors d ON b.doctor_id = d.id
+      `;
+
+      if (user.role === "doctor") {
+        appointmentQuery += `
+          WHERE b.doctor_id = (SELECT id FROM doctors WHERE user_id = ? LIMIT 1)
+          ORDER BY b.booking_date DESC, b.booking_time DESC
+        `;
+      } else {
+        appointmentQuery += `
+          WHERE b.patient_id = ?
+          ORDER BY b.booking_date DESC, b.booking_time DESC
+        `;
+      }
+
+      db.query(appointmentQuery, params, (appointmentErr, appointmentResults) => {
+        if (appointmentErr) {
+          return res.status(500).json({ success: false, message: appointmentErr.message });
+        }
+
+        res.json({
+          success: true,
+          user,
+          appointments: appointmentResults
+        });
+      });
+    }
+  );
+});
+
+app.put("/admin/user-status/:id", (req, res) => {
+  const { is_active } = req.body;
+
+  db.query(
+    "UPDATE users SET is_active = ? WHERE id = ?",
+    [Boolean(is_active), req.params.id],
+    (err) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
+      res.json({ success: true });
+    }
+  );
+});
+
+app.post("/admin/users/bulk-delete", (req, res) => {
+  const { ids } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ success: false, message: "No users selected" });
+  }
+
+  db.query("DELETE FROM users WHERE id IN (?)", [ids], (err) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true });
+  });
 });
 
 // ─── DOWNLOAD SINGLE USER AS PDF ───
