@@ -1,0 +1,165 @@
+/* ═══════════════════════════════════════════════════════════
+   NEXUS - Classic Off-White Theme
+   Professional Medical Platform Design
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+:root {
+  /* ─── Color Palette ─────────────────────────────────────── */
+  --bg-primary:       #f8f9fa;
+  --bg-secondary:     #ffffff;
+  --bg-tertiary:      #f1f3f5;
+  --bg-hover:         #e9ecef;
+  
+  --border-light:     #e0e4e8;
+  --border-medium:    #cbd5e0;
+  --border-dark:      #a0aec0;
+  
+  --text-primary:     #1a202c;
+  --text-secondary:   #4a5568;
+  --text-tertiary:    #718096;
+  --text-muted:       #a0aec0;
+  
+  --accent-primary:   #2b6cb0;
+  --accent-hover:     #2c5282;
+  --accent-light:     #ebf8ff;
+  
+  --success:          #38a169;
+  --success-light:    #f0fff4;
+  --success-border:   #9ae6b4;
+  
+  --error:            #e53e3e;
+  --error-light:      #fff5f5;
+  --error-border:     #fc8181;
+  
+  --warning:          #dd6b20;
+  --warning-light:    #fffaf0;
+  
+  --info:             #3182ce;
+  --info-light:       #ebf8ff;
+  
+  /* ─── Typography ────────────────────────────────────────── */
+  --font-primary:     'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display:     'Playfair Display', Georgia, serif;
+  
+  /* ─── Spacing ───────────────────────────────────────────── */
+  --radius-sm:        6px;
+  --radius-md:        8px;
+  --radius-lg:        12px;
+  --radius-xl:        16px;
+  
+  --shadow-sm:        0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md:        0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg:        0 10px 15px rgba(0, 0, 0, 0.08);
+  --shadow-xl:        0 20px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* ─── Global Resets ──────────────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Utility Classes ────────────────────────────────────── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-dark);
+}
+
+/* ─── Form Elements ──────────────────────────────────────── */
+input, select, textarea {
+  font-family: var(--font-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}

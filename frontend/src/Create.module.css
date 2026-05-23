@@ -1,0 +1,452 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes rotateFloat {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(-30px, -30px) rotate(45deg); }
+}
+
+@keyframes rotateFloat2 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(30px, 30px) rotate(-45deg); }
+}
+
+@keyframes rotateFloat3 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  50% { transform: translate(-15px, 15px) rotate(90deg) scale(1.2); }
+}
+
+/* Main Wrapper */
+.createWrapper {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #16a085 0%, #138d75 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Left Section - Welcome */
+.leftSection {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  position: relative;
+  z-index: 1;
+  animation: slideInLeft 0.8s ease;
+  clip-path: polygon(0 0, 85% 0, 100% 100%, 0 100%);
+  background: linear-gradient(135deg, #17a589 0%, #138d75 100%);
+}
+
+.welcomeContent {
+  max-width: 500px;
+  color: white;
+  position: relative;
+  z-index: 2;
+}
+
+.welcomeTitle {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.welcomeSubtitle {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+  opacity: 0.95;
+}
+
+.welcomeText {
+  font-size: 15px;
+  line-height: 1.8;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+/* Decorative Squares */
+.square1 {
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 30px;
+  bottom: -80px;
+  left: -80px;
+  animation: rotateFloat 10s ease-in-out infinite;
+}
+
+.square2 {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: rotateFloat2 12s ease-in-out infinite;
+}
+
+.square3 {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  top: 120px;
+  left: 120px;
+  animation: rotateFloat3 8s ease-in-out infinite;
+}
+
+/* Right Section - Form */
+.rightSection {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  animation: slideInRight 0.8s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.formCard {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border-radius: 20px;
+  padding: 28px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Form Header */
+.formHeader {
+  margin-bottom: 18px;
+}
+
+.formTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.formSubtitle {
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* Role Selector */
+.roleSelector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.roleTab {
+  flex: 1;
+  padding: 7px 14px;
+  background: #f5f5f5;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.roleTab:hover {
+  background: #ebebeb;
+  border-color: #d0d0d0;
+}
+
+.roleTabActive {
+  background: #16a085;
+  border-color: #16a085;
+  color: white;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Name Grid */
+.nameGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Input Group */
+.inputGroup {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.3s ease;
+}
+
+.inputGroup:focus-within {
+  background: #ebebeb;
+  box-shadow: 0 0 0 3px rgba(22, 160, 133, 0.1);
+}
+
+.input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #1a1a1a;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  width: 100%;
+}
+
+.input::placeholder {
+  color: #999;
+}
+
+/* Phone Wrapper */
+.phoneWrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.otpBtn {
+  padding: 10px 16px;
+  background: #16a085;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.otpBtn:hover:not(:disabled) {
+  background: #138d75;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22, 160, 133, 0.3);
+}
+
+.otpBtn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+.showBtn {
+  background: none;
+  border: none;
+  color: #16a085;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: 'Inter', sans-serif;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.showBtn:hover {
+  color: #138d75;
+}
+
+/* Password Strength */
+.strengthBar {
+  height: 3px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin-top: -4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.strengthFill {
+  height: 100%;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+.strengthLabel {
+  position: absolute;
+  right: 0;
+  top: -18px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #666;
+}
+
+/* Create Button */
+.createBtn {
+  width: 100%;
+  padding: 10px 18px;
+  background: #16a085;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  margin-top: 4px;
+}
+
+.createBtn:hover:not(:disabled) {
+  background: #138d75;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(22, 160, 133, 0.3);
+}
+
+.createBtn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+.createBtn:active {
+  transform: translateY(0);
+}
+
+/* Message */
+.message {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 6px;
+  animation: fadeIn 0.3s ease;
+}
+
+.messageSuccess {
+  background: #d5f4e6;
+  color: #0e6251;
+  border: 1px solid #7dcea0;
+}
+
+.messageError {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+}
+
+/* Form Footer */
+.formFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 11px;
+  color: #666;
+}
+
+.signInLink {
+  background: none;
+  border: none;
+  color: #16a085;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.signInLink:hover {
+  color: #138d75;
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .leftSection {
+    clip-path: polygon(0 0, 75% 0, 100% 100%, 0 100%);
+  }
+  
+  .welcomeTitle {
+    font-size: 48px;
+  }
+  
+  .welcomeSubtitle {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .createWrapper {
+    flex-direction: column;
+  }
+  
+  .leftSection {
+    clip-path: none;
+    min-height: 35vh;
+    padding: 40px 20px;
+  }
+  
+  .welcomeTitle {
+    font-size: 36px;
+  }
+  
+  .welcomeSubtitle {
+    font-size: 18px;
+  }
+  
+  .welcomeText {
+    font-size: 14px;
+  }
+  
+  .formCard {
+    padding: 28px 24px;
+    max-height: none;
+  }
+  
+  .nameGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .square1,
+  .square2,
+  .square3 {
+    display: none;
+  }
+}

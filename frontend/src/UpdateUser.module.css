@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+:root {
+  --bg-primary:       #f8f9fa;
+  --bg-secondary:     #ffffff;
+  --bg-tertiary:      #f1f3f5;
+  --border-light:     #e0e4e8;
+  --border-medium:    #cbd5e0;
+  --text-primary:     #1a202c;
+  --text-secondary:   #4a5568;
+  --text-tertiary:    #718096;
+  --text-muted:       #a0aec0;
+  --accent-primary:   #2b6cb0;
+  --accent-hover:     #2c5282;
+  --accent-light:     #ebf8ff;
+  --font-primary:     'Inter', sans-serif;
+  --font-display:     'Playfair Display', serif;
+  --radius-md:        8px;
+  --radius-lg:        12px;
+  --shadow-sm:        0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md:        0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.formContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+  padding: 40px 20px;
+  font-family: var(--font-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated mesh gradient background */
+.formContainer::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 800px 600px at 0% 0%, rgba(43,108,176,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 600px 800px at 100% 100%, rgba(56,161,105,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse 700px 500px at 50% 50%, rgba(99,102,241,0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+  animation: meshMove 20s ease-in-out infinite;
+}
+
+.formContainer::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(circle 400px at 20% 80%, rgba(236,72,153,0.08) 0%, transparent 50%),
+    radial-gradient(circle 500px at 80% 20%, rgba(59,130,246,0.10) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+  animation: meshMove 25s ease-in-out infinite reverse;
+}
+
+@keyframes meshMove {
+  0%, 100% { 
+    transform: translate(0, 0) scale(1); 
+    opacity: 1;
+  }
+  33% { 
+    transform: translate(30px, -30px) scale(1.05); 
+    opacity: 0.9;
+  }
+  66% { 
+    transform: translate(-20px, 20px) scale(0.95); 
+    opacity: 0.95;
+  }
+}
+
+.formCard {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08);
+  animation: cardReveal 0.5s ease both;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.logoMark {
+  width: 40px;
+  height: 40px;
+  background: var(--accent-primary);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+
+.logoMark svg {
+  width: 20px;
+  height: 20px;
+}
+
+.logoName {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.formCard h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.formCard .subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0 0 32px;
+  line-height: 1.5;
+}
+
+.formControl {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  font-size: 14px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  transition: all 0.2s;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.formControl::placeholder { 
+  color: var(--text-muted); 
+}
+
+.formControl:read-only {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg-tertiary);
+}
+
+.formControl:not(:read-only):focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.btnSubmit {
+  font-family: var(--font-primary);
+  font-size: 15px;
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: var(--accent-primary);
+  color: white;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.btnSubmit:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btnSubmit:active {
+  transform: translateY(0);
+}
