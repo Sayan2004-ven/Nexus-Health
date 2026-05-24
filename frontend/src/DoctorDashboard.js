@@ -494,16 +494,21 @@ export default function DoctorDashboard() {
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
-  const hasBookingsOnDate = (date) => {
+  const getBookingStateForDate = (date) => {
     const dateStr = formatDateForDB(date);
-    const hasBooking = bookings.some(b => {
+    const dateBookings = bookings.filter(b => {
       // Handle both date formats (YYYY-MM-DD and date objects)
       const bookingDate = typeof b.booking_date === 'string' 
         ? b.booking_date.split('T')[0] // Handle ISO date strings
         : formatDateForDB(new Date(b.booking_date));
       return bookingDate === dateStr;
     });
-    return hasBooking;
+
+    if (dateBookings.length === 0) {
+      return 'none';
+    }
+
+    return dateBookings.every(booking => booking.completed) ? 'completed' : 'active';
   };
 
   if (loading) {
@@ -548,14 +553,14 @@ export default function DoctorDashboard() {
                   <p>{form.specialization || 'Specialist'}</p>
                 </div>
               </div>
-              <p className={styles.greeting}>Welcome back! 👋</p>
+              <p className={styles.greeting}>Welcome back!<i class="fa-solid fa-door-open"></i></p>
             </div>
 
             {/* Sidebar Stats */}
             <div className={styles.sidebarStats}>
               <div className={styles.sidebarStatCard}>
                 <div className={`${styles.sidebarStatIcon} ${styles.yellow}`}>
-                  📅
+                  <i class="fa-regular fa-calendar"></i>
                 </div>
                 <div className={styles.sidebarStatContent}>
                   <h4>Total Bookings</h4>
@@ -564,7 +569,7 @@ export default function DoctorDashboard() {
               </div>
               <div className={styles.sidebarStatCard}>
                 <div className={`${styles.sidebarStatIcon} ${styles.green}`}>
-                  ⏰
+                  <i class="fa-regular fa-clock"></i>
                 </div>
                 <div className={styles.sidebarStatContent}>
                   <h4>Today</h4>
@@ -578,7 +583,7 @@ export default function DoctorDashboard() {
               </div>
               <div className={styles.sidebarStatCard}>
                 <div className={`${styles.sidebarStatIcon} ${styles.orange}`}>
-                  ⭐
+                  <i class="fa-regular fa-star"></i>
                 </div>
                 <div className={styles.sidebarStatContent}>
                   <h4>Rating</h4>
@@ -590,10 +595,10 @@ export default function DoctorDashboard() {
             {/* Sidebar Navigation */}
             <nav className={styles.sidebarNav}>
               <ul>
-                <li className={styles.active}>📊 Dashboard</li>
-                <li onClick={() => setShowSlotModal(true)}>📅 Manage Slots</li>
-                <li onClick={() => setShowHistoryModal(true)}>📋 Patient History</li>
-                <li onClick={() => setShowRegistrationForm(true)}>⚙️ Edit Profile</li>
+                <li className={styles.active}><i class="fa-regular fa-chart-bar"></i> Dashboard</li>
+                <li onClick={() => setShowSlotModal(true)}><i class="fa-solid fa-check-to-slot"></i> Manage Slots</li>
+                <li onClick={() => setShowHistoryModal(true)}><i class="fa-solid fa-book"></i> Patient History</li>
+                <li onClick={() => setShowRegistrationForm(true)}><i class="fa-solid fa-gears"></i> Edit Profile</li>
               </ul>
             </nav>
 
@@ -604,7 +609,7 @@ export default function DoctorDashboard() {
                 onClick={handleLogout}
                 style={{ width: '100%' }}
               >
-                🚪 Logout
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
               </button>
             </div>
           </aside>
@@ -625,7 +630,7 @@ export default function DoctorDashboard() {
                     onClick={() => setShowNotifications(!showNotifications)}
                     title="Notifications"
                   >
-                    🔔
+                    <i class="fa-regular fa-bell"></i>
                     {unreadCount > 0 && (
                       <span className={styles.notificationBadge}>{unreadCount}</span>
                     )}
@@ -678,7 +683,7 @@ export default function DoctorDashboard() {
                   onClick={() => form.id && fetchBookings(form.id)}
                   title="Refresh bookings"
                 >
-                  🔄
+                  <i class="fa-solid fa-retweet"></i>
                 </button>
               </div>
             </div>
@@ -687,10 +692,10 @@ export default function DoctorDashboard() {
             <div className={styles.dashboardGrid}>
               {/* Calendar Section */}
               <div className={styles.calendarSection}>
-                <Calendar
-                  currentDate={currentDate}
-                  setCurrentDate={setCurrentDate}
-                  hasBookingsOnDate={hasBookingsOnDate}
+                <Calendar 
+                  currentDate={currentDate} 
+                  setCurrentDate={setCurrentDate} 
+                  getBookingStateForDate={getBookingStateForDate}
                   onDateClick={handleDateClick}
                 />
               </div>
@@ -980,7 +985,7 @@ function StatCard({ icon, label, value, color }) {
 }
 
 // Calendar Component
-function Calendar({ currentDate, setCurrentDate, hasBookingsOnDate, onDateClick }) {
+function Calendar({ currentDate, setCurrentDate, getBookingStateForDate, onDateClick }) {
   const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"];
   
@@ -1020,7 +1025,7 @@ function Calendar({ currentDate, setCurrentDate, hasBookingsOnDate, onDateClick 
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     const isToday = date.toDateString() === today.toDateString();
     const isPast = isPastDate(date);
-    const hasBookings = hasBookingsOnDate(date);
+    const bookingState = getBookingStateForDate(date);
     
     days.push(
       <CalendarDay
@@ -1029,7 +1034,7 @@ function Calendar({ currentDate, setCurrentDate, hasBookingsOnDate, onDateClick 
         date={date}
         isToday={isToday}
         isPast={isPast}
-        hasBookings={hasBookings}
+        bookingState={bookingState}
         onClick={() => onDateClick(date)}
       />
     );
@@ -1077,7 +1082,11 @@ function Calendar({ currentDate, setCurrentDate, hasBookingsOnDate, onDateClick 
         </div>
         <div className={styles.legendItem}>
           <div className={styles.legendDot} style={{ background: '#e24b4a' }} />
-          <span>Has Bookings</span>
+          <span>Pending appointments</span>
+        </div>
+        <div className={styles.legendItem}>
+          <div className={styles.legendDot} style={{ background: '#22c55e' }} />
+          <span>All completed</span>
         </div>
       </div>
       
@@ -1100,8 +1109,10 @@ function Calendar({ currentDate, setCurrentDate, hasBookingsOnDate, onDateClick 
 }
 
 // Individual Calendar Day Component
-function CalendarDay({ day, date, isToday, isPast, hasBookings, onClick }) {
+function CalendarDay({ day, date, isToday, isPast, bookingState, onClick }) {
   const [isHovered, setIsHovered] = useState(false);
+  const hasBookings = bookingState !== 'none';
+  const isCompleted = bookingState === 'completed';
 
   return (
     <div
@@ -1110,7 +1121,8 @@ function CalendarDay({ day, date, isToday, isPast, hasBookings, onClick }) {
         ${styles.calendarDayActive}
         ${isToday ? styles.calendarDayToday : ''}
         ${isPast ? styles.calendarDayPast : ''}
-        ${hasBookings ? styles.calendarDayHasBookings : ''}
+        ${bookingState === 'active' ? styles.calendarDayHasBookings : ''}
+        ${isCompleted ? styles.calendarDayCompleted : ''}
       `}
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -1120,7 +1132,9 @@ function CalendarDay({ day, date, isToday, isPast, hasBookings, onClick }) {
         <span className={styles.dayNumber}>{day}</span>
         {hasBookings && (
           <div className={styles.bookingBadge}>
-            <span className={styles.bookingIndicator} />
+            <span
+              className={`${styles.bookingIndicator} ${isCompleted ? styles.bookingIndicatorCompleted : ''}`}
+            />
           </div>
         )}
       </div>

@@ -110,6 +110,11 @@ function getAppointmentStatus(appointment) {
   return appointment.status || "pending";
 }
 
+function getInitials(first = "", last = "") {
+  const initials = `${String(first).charAt(0)}${String(last).charAt(0)}`.trim();
+  return initials ? initials.toUpperCase() : "U";
+}
+
 function buildCsv(rows, columns) {
   const escapeCell = (value) => {
     const raw = value == null ? "" : String(value);
@@ -170,51 +175,156 @@ function buildFallbackActivities(users, appointments) {
     .slice(0, 10);
 }
 
-function LineChart({ points }) {
-  const width = 520;
-  const height = 220;
-  const padding = 24;
-  const maxValue = Math.max(...points.map((point) => point.value), 1);
-  const usableWidth = width - padding * 2;
-  const usableHeight = height - padding * 2;
-
-  const polylinePoints = points.map((point, index) => {
-    const x = padding + (index / Math.max(points.length - 1, 1)) * usableWidth;
-    const y = height - padding - (point.value / maxValue) * usableHeight;
-    return `${x},${y}`;
-  }).join(" ");
+function LineChart({ points, totalRevenue }) {
+  const width = 760;
+  const height = 340;
+  const activePoints = points.filter((point) => point.value > 0);
+  const selectedPoints = (activePoints.length >= 5 ? activePoints.slice(-5) : points.slice(-5)).map((point, index) => ({
+    ...point,
+    step: String(index + 1).padStart(2, "0")
+  }));
+  const maxValue = Math.max(4, ...selectedPoints.map((point) => point.value));
+  const barColors = ["#2ec5d3", "#3b82f6", "#10b981", "#f6c515", "#ff7a12"];
+  const chartLeft = 68;
+  const chartRight = 28;
+  const chartTop = 78;
+  const chartBottom = 74;
+  const chartHeight = height - chartTop - chartBottom;
+  const chartWidth = width - chartLeft - chartRight;
+  const barWidth = 56;
+  const gap = (chartWidth - barWidth * selectedPoints.length) / Math.max(selectedPoints.length - 1, 1);
+  const barData = selectedPoints.map((point, index) => {
+    const heightValue = (point.value / maxValue) * chartHeight;
+    const x = chartLeft + index * (barWidth + gap);
+    const y = chartTop + (chartHeight - heightValue);
+    const color = barColors[index % barColors.length];
+    return { ...point, x, y, heightValue, color };
+  });
+  const totalAppointments = points.reduce((sum, point) => sum + point.value, 0);
+  const averageAppointments = totalAppointments / Math.max(points.length, 1);
+  const gridTicks = Array.from({ length: maxValue + 1 }, (_, index) => index).slice(0, 5);
 
   return (
-    <div className={styles.chartCard}>
-      <div className={styles.chartHeader}>
-        <h3>Appointments in Last 30 Days</h3>
-        <span>{points.reduce((sum, point) => sum + point.value, 0)} total</span>
+    <div className={`${styles.chartCard} ${styles.chartCardInfographic}`}>
+      <div className={styles.infographicHeader}>
+        <span className={styles.infographicEyebrow}>Appointments in last 30 days</span>
+        <h3>Bar Graph</h3>
+        <div className={styles.infographicUnderline}>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className={styles.lineChart}>
-        {[0, 1, 2, 3].map((step) => {
-          const y = padding + (step / 3) * usableHeight;
-          return <line key={step} x1={padding} y1={y} x2={width - padding} y2={y} className={styles.gridLine} />;
+
+      <svg viewBox={`0 0 ${width} ${height}`} className={styles.infographicChart} aria-hidden="true">
+        {gridTicks.map((tick) => {
+          const y = chartTop + chartHeight - (tick / maxValue) * chartHeight;
+          return (
+            <g key={tick}>
+              <line x1={chartLeft} y1={y} x2={width - chartRight} y2={y} className={styles.infographicGridLine} />
+              <text x={chartLeft - 12} y={y + 4} textAnchor="end" className={styles.infographicAxisText}>
+                {tick}
+              </text>
+            </g>
+          );
         })}
-        <polyline fill="none" points={polylinePoints} className={styles.linePath} />
-        {points.map((point, index) => {
-          const x = padding + (index / Math.max(points.length - 1, 1)) * usableWidth;
-          const y = height - padding - (point.value / maxValue) * usableHeight;
-          return <circle key={point.label + index} cx={x} cy={y} r="3.5" className={styles.linePoint} />;
+
+        {barData.map((point, index) => {
+          return (
+            <g key={point.step}>
+              <rect
+                x={point.x}
+                y={point.y}
+                width={barWidth}
+                height={point.heightValue}
+                rx="10"
+                fill={point.color}
+                className={styles.infographicBarSimple}
+              />
+              <text x={point.x + barWidth / 2} y={point.y - 10} textAnchor="middle" className={styles.infographicBarValue}>
+                {point.value}
+              </text>
+              <text x={point.x + barWidth / 2} y={height - 38} textAnchor="middle" className={styles.infographicStepTitle}>
+                {point.label}
+              </text>
+              <text x={point.x + barWidth / 2} y={height - 20} textAnchor="middle" className={styles.infographicStepMeta}>
+                {point.step}
+              </text>
+            </g>
+          );
         })}
+
+        <line x1={chartLeft} y1={chartTop + chartHeight + 1} x2={width - chartRight} y2={chartTop + chartHeight + 1} className={styles.infographicBaseLine} />
       </svg>
-      <div className={styles.chartLabels}>
-        <span>{points[0]?.label}</span>
-        <span>{points[points.length - 1]?.label}</span>
+
+      <div className={styles.infographicFooter}>
+        <span>{totalAppointments} total bookings</span>
+        <span>{averageAppointments.toFixed(2)} avg/day</span>
+        <span>{formatCurrency(totalRevenue || 0)} revenue</span>
       </div>
     </div>
   );
+}
+
+function polarToCartesian(cx, cy, radius, angleInDegrees) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  return {
+    x: cx + radius * Math.cos(angleInRadians),
+    y: cy + radius * Math.sin(angleInRadians)
+  };
+}
+
+function describeDonutArc(cx, cy, outerRadius, innerRadius, startAngle, endAngle) {
+  const startOuter = polarToCartesian(cx, cy, outerRadius, endAngle);
+  const endOuter = polarToCartesian(cx, cy, outerRadius, startAngle);
+  const startInner = polarToCartesian(cx, cy, innerRadius, endAngle);
+  const endInner = polarToCartesian(cx, cy, innerRadius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+  return [
+    `M ${startOuter.x} ${startOuter.y}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0 ${endOuter.x} ${endOuter.y}`,
+    `L ${endInner.x} ${endInner.y}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${startInner.x} ${startInner.y}`,
+    "Z"
+  ].join(" ");
 }
 
 function PieChart({ users }) {
   const doctorCount = users.filter((user) => user.role === "doctor").length;
   const patientCount = users.filter((user) => user.role === "patient" || !user.role).length;
   const total = Math.max(doctorCount + patientCount, 1);
-  const doctorAngle = Math.round((doctorCount / total) * 360);
+  const doctorPercent = Math.round((doctorCount / total) * 100);
+  const patientPercent = Math.max(0, 100 - doctorPercent);
+  const doctorAngle = (doctorCount / total) * 360;
+  const center = 130;
+  const outerRadius = 86;
+  const innerRadius = 42;
+  const depth = 12;
+  const startAngle = -90;
+
+  const segments = [
+    {
+      key: "doctors",
+      label: "Doctors",
+      value: doctorCount,
+      percent: doctorPercent,
+      start: startAngle,
+      end: startAngle + doctorAngle,
+      fill: "url(#doctorSliceGradient)",
+      sideFill: "url(#doctorSliceShadow)"
+    },
+    {
+      key: "patients",
+      label: "Patients",
+      value: patientCount,
+      percent: patientPercent,
+      start: startAngle + doctorAngle,
+      end: startAngle + 360,
+      fill: "url(#patientSliceGradient)",
+      sideFill: "url(#patientSliceShadow)"
+    }
+  ];
 
   return (
     <div className={styles.chartCard}>
@@ -223,22 +333,107 @@ function PieChart({ users }) {
         <span>{doctorCount + patientCount} users</span>
       </div>
       <div className={styles.pieWrap}>
-        <div
-          className={styles.pieChart}
-          style={{
-            background: `conic-gradient(#2b6cb0 0deg ${doctorAngle}deg, #38a169 ${doctorAngle}deg 360deg)`
-          }}
-        >
-          <div className={styles.pieCenter}>{doctorCount + patientCount}</div>
+        <div className={styles.pieStage}>
+          <svg viewBox="0 0 260 260" className={styles.pieSvg} aria-hidden="true">
+            <defs>
+              <linearGradient id="doctorSliceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#8cf4f6" />
+                <stop offset="100%" stopColor="#20d9e0" />
+              </linearGradient>
+              <linearGradient id="doctorSliceShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#0faeb4" />
+                <stop offset="100%" stopColor="#0b8f95" />
+              </linearGradient>
+              <linearGradient id="patientSliceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ff8b80" />
+                <stop offset="55%" stopColor="#ff4433" />
+                <stop offset="100%" stopColor="#e63424" />
+              </linearGradient>
+              <linearGradient id="patientSliceShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#d63b2d" />
+                <stop offset="100%" stopColor="#b62d21" />
+              </linearGradient>
+              <radialGradient id="donutCenterGlow" cx="35%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="100%" stopColor="#e5e7eb" />
+              </radialGradient>
+              <filter id="donutShadow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="14" stdDeviation="10" floodColor="rgba(15,23,42,0.22)" />
+              </filter>
+            </defs>
+
+            <circle cx={center} cy={center} r="108" className={styles.pieBackdropRing} />
+            <circle cx={center} cy={center} r="94" className={styles.pieOuterGuide} />
+
+            {segments.map((segment) => (
+              <path
+                key={`${segment.key}-side`}
+                d={describeDonutArc(center, center + depth, outerRadius, innerRadius, segment.start, segment.end)}
+                fill={segment.sideFill}
+                className={styles.donutSliceSide}
+              />
+            ))}
+
+            {segments.map((segment) => (
+              <path
+                key={segment.key}
+                d={describeDonutArc(center, center, outerRadius, innerRadius, segment.start, segment.end)}
+                fill={segment.fill}
+                filter="url(#donutShadow)"
+                className={styles.donutSliceTop}
+              />
+            ))}
+
+            {segments.map((segment) => {
+              const midAngle = (segment.start + segment.end) / 2;
+              const labelPoint = polarToCartesian(center, center, (outerRadius + innerRadius) / 2 + 4, midAngle);
+              return (
+                <text
+                  key={`${segment.key}-label`}
+                  x={labelPoint.x}
+                  y={labelPoint.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className={styles.donutPercent}
+                >
+                  {segment.percent}%
+                </text>
+              );
+            })}
+
+            <circle cx={center} cy={center} r={innerRadius - 2} fill="url(#donutCenterGlow)" className={styles.donutCenterDisc} />
+            <circle cx={center} cy={center - 2} r={innerRadius - 10} className={styles.donutCenterCore} />
+            <path d="M112 132 L124 120 L136 129 L150 112" className={styles.donutCenterTrend} />
+            <circle cx="112" cy="132" r="2.5" className={styles.donutCenterDot} />
+            <circle cx="124" cy="120" r="2.5" className={styles.donutCenterDot} />
+            <circle cx="136" cy="129" r="2.5" className={styles.donutCenterDot} />
+            <circle cx="150" cy="112" r="2.5" className={styles.donutCenterDot} />
+          </svg>
+
+          {segments.map((segment) => (
+            <div
+              key={`${segment.key}-callout`}
+              className={`${styles.pieCallout} ${segment.key === "doctors" ? styles.pieCalloutDoctors : styles.pieCalloutPatients}`}
+            >
+              <strong>{segment.percent}%</strong>
+              <span>{segment.label}</span>
+            </div>
+          ))}
         </div>
         <div className={styles.legendList}>
           <div className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.legendDoctor}`}></span>
-            Doctors: {doctorCount}
+            <div className={styles.legendContent}>
+              <strong>Doctors</strong>
+              <span>{doctorCount} members</span>
+            </div>
           </div>
           <div className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.legendPatient}`}></span>
-            Patients: {patientCount}
+            <div className={styles.legendContent}>
+              <strong>Patients</strong>
+              <span>{patientCount} members</span>
+            </div>
           </div>
         </div>
       </div>
@@ -422,6 +617,24 @@ export default function AdminDashboard() {
     setAppointmentStatusFilter("all");
   };
 
+  const dashboardFooterStats = useMemo(() => {
+    if (activeTab === "appointments") {
+      return [
+        { label: "Total appts", value: filteredAppointments.length, tone: styles.footerMetricBlue },
+        { label: "Confirmed", value: filteredAppointments.filter((item) => getAppointmentStatus(item) === "confirmed").length, tone: styles.footerMetricGreen },
+        { label: "Pending", value: filteredAppointments.filter((item) => getAppointmentStatus(item) === "pending").length, tone: styles.footerMetricRed },
+        { label: "Today's appts", value: appointments.filter((item) => item.booking_date === new Date().toISOString().slice(0, 10)).length, tone: styles.footerMetricOrange }
+      ];
+    }
+
+    return [
+      { label: activeTab === "doctors" ? "Total doctors" : "Total patients", value: filteredUsers.length, tone: styles.footerMetricBlue },
+      { label: "Active", value: filteredUsers.filter((item) => item.is_active).length, tone: styles.footerMetricGreen },
+      { label: "Inactive", value: filteredUsers.filter((item) => !item.is_active).length, tone: styles.footerMetricRed },
+      { label: "Today's appts", value: appointments.filter((item) => item.booking_date === new Date().toISOString().slice(0, 10)).length, tone: styles.footerMetricOrange }
+    ];
+  }, [activeTab, appointments, filteredAppointments, filteredUsers]);
+
   const toggleUserStatus = async (user) => {
     const nextStatus = !user.is_active;
     const actionLabel = nextStatus ? "activate" : "deactivate";
@@ -534,8 +747,10 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      <div className={styles.sectionDivider} aria-hidden="true"></div>
+
       <div className={styles.insightsGrid}>
-        <LineChart points={lineChartPoints} />
+        <LineChart points={lineChartPoints} totalRevenue={summary?.total_revenue ?? 0} />
         <PieChart users={users} />
         <div className={styles.activityCard}>
           <div className={styles.chartHeader}>
@@ -682,7 +897,7 @@ export default function AdminDashboard() {
                 {filteredAppointments.length ? (
                   filteredAppointments.map((appointment) => (
                     <tr key={appointment.id}>
-                      <td><span className={styles.idPill}>{appointment.id}</span></td>
+                      <td><span className={`${styles.idPill} ${styles['idColor' + (Number(appointment.id) % 6)]}`}>{appointment.id}</span></td>
                       <td>
                         <div className={styles.primaryCell}>{formatDate(appointment.booking_date)}</div>
                         <div className={styles.secondaryCell}>{formatTime(appointment.booking_time)}</div>
@@ -727,10 +942,15 @@ export default function AdminDashboard() {
                 {filteredUsers.length ? (
                   filteredUsers.map((user) => (
                     <tr key={user.id}>
-                      <td><span className={styles.idPill}>{user.id}</span></td>
+                      <td><span className={`${styles.idPill} ${styles['idColor' + (Number(user.id) % 6)]}`}>{user.id}</span></td>
                       <td>
-                        <div className={styles.primaryCell}>{user.fname} {user.lname}</div>
-                        <div className={styles.secondaryCell}>{user.email}</div>
+                        <div className={styles.userCell}>
+                          <div className={`${styles.userAvatarSmall} ${styles['avatarColor' + (Number(user.id) % 6)]}`}>{getInitials(user.fname, user.lname)}</div>
+                          <div>
+                            <div className={styles.primaryCell}>{user.fname} {user.lname}</div>
+                            <div className={styles.secondaryCell}>{user.email}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className={styles.emailCell}>{user.email}</td>
                       <td>{user.phone}</td>
@@ -766,6 +986,21 @@ export default function AdminDashboard() {
             </table>
           )}
         </div>
+
+        <div className={styles.dashboardFooterBar}>
+          <div className={styles.dashboardFooterStats}>
+            {dashboardFooterStats.map((item) => (
+              <div key={item.label} className={styles.dashboardFooterStat}>
+                <strong className={item.tone}>{item.value}</strong>
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className={styles.dashboardFooterRecords}>
+            <span className={styles.dashboardFooterDot}></span>
+            Showing {activeTab === "appointments" ? filteredAppointments.length : filteredUsers.length} of {activeTab === "appointments" ? appointments.length : activeTab === "doctors" ? doctors.length : patients.length} records
+          </div>
+        </div>
       </div>
 
       {detailModal.open ? (
@@ -779,13 +1014,46 @@ export default function AdminDashboard() {
               <div className={styles.emptyState}>Loading details...</div>
             ) : detailModal.user ? (
               <>
+                <div className={styles.detailHero}>
+                  <div className={styles.detailAvatarLarge}>{getInitials(detailModal.user.fname, detailModal.user.lname)}</div>
+                  <div>
+                    <h4 className={styles.detailName}>{detailModal.user.fname} {detailModal.user.lname}</h4>
+                    <div className={styles.detailMeta}>
+                      <span className={styles.roleBadgeSmall}>{detailModal.user.role ? (detailModal.user.role === 'doctor' ? 'Doctor' : detailModal.user.role) : 'Patient'}</span>
+                    </div>
+                  </div>
+                  <div style={{marginLeft: 'auto'}}>
+                    <div className={styles.headerCheckbox}></div>
+                  </div>
+                </div>
+
                 <div className={styles.detailGrid}>
-                  <div><span className={styles.detailLabel}>Name</span><strong>{detailModal.user.fname} {detailModal.user.lname}</strong></div>
-                  <div><span className={styles.detailLabel}>Email</span><strong>{detailModal.user.email}</strong></div>
-                  <div><span className={styles.detailLabel}>Phone</span><strong>{detailModal.user.phone}</strong></div>
-                  <div><span className={styles.detailLabel}>Role</span><strong>{detailModal.user.role || "patient"}</strong></div>
-                  <div><span className={styles.detailLabel}>Registered</span><strong>{formatDateTime(detailModal.user.created_at)}</strong></div>
-                  <div><span className={styles.detailLabel}>Last Login</span><strong>{formatDateTime(detailModal.user.last_login)}</strong></div>
+                  <div className={`${styles.detailInfoCard} ${styles.infoColorBlue}`}>
+                    <span className={styles.detailInfoLabel}>Name</span>
+                    <div className={styles.detailInfoValue}>{detailModal.user.fname} {detailModal.user.lname}</div>
+                  </div>
+                  <div className={`${styles.detailInfoCard} ${styles.infoColorPink}`}>
+                    <span className={styles.detailInfoLabel}>Email</span>
+                    <div className={styles.detailInfoValue}>{detailModal.user.email}</div>
+                  </div>
+
+                  <div className={`${styles.detailInfoCard} ${styles.infoColorYellow}`}>
+                    <span className={styles.detailInfoLabel}>Phone</span>
+                    <div className={styles.detailInfoValue}>{detailModal.user.phone}</div>
+                  </div>
+                  <div className={`${styles.detailInfoCard} ${styles.infoColorGreen}`}>
+                    <span className={styles.detailInfoLabel}>Role</span>
+                    <div className={styles.detailInfoValue}>{detailModal.user.role || 'Patient'}</div>
+                  </div>
+
+                  <div className={`${styles.detailInfoCard} ${styles.infoColorBlue}`}>
+                    <span className={styles.detailInfoLabel}>Registered</span>
+                    <div className={styles.detailInfoValue}>{formatDateTime(detailModal.user.created_at)}</div>
+                  </div>
+                  <div className={`${styles.detailInfoCard} ${styles.infoColorRed}`}>
+                    <span className={styles.detailInfoLabel}>Last Login</span>
+                    <div className={styles.detailInfoValue}>{formatDateTime(detailModal.user.last_login)}</div>
+                  </div>
                 </div>
                 <div className={styles.modalSectionTitle}>Appointment History</div>
                 <div className={styles.modalTableWrap}>
@@ -803,11 +1071,13 @@ export default function AdminDashboard() {
                       {detailModal.appointments.length ? (
                         detailModal.appointments.map((appointment) => (
                           <tr key={appointment.id}>
-                            <td>{appointment.id}</td>
+                            <td><span className={`${styles.idPill} ${styles['idColor' + (Number(appointment.id) % 6)]} ${styles.modalIdPill}`}>{appointment.id}</span></td>
                             <td>{formatDate(appointment.booking_date)} {formatTime(appointment.booking_time)}</td>
                             <td>{appointment.doctor_name || "N/A"}</td>
                             <td>{appointment.patient_name}</td>
-                            <td>{getAppointmentStatus(appointment)}</td>
+                            <td>
+                              <span className={`${styles.statusBadge} ${styles[`status${getAppointmentStatus(appointment)[0].toUpperCase()}${getAppointmentStatus(appointment).slice(1)}`]}`}>{getAppointmentStatus(appointment)}</span>
+                            </td>
                           </tr>
                         ))
                       ) : (

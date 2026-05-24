@@ -1342,6 +1342,33 @@ select.input {
   box-shadow: 0 12px 24px rgba(229, 62, 62, 0.3);
 }
 
+.calendarDayCompleted {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+  position: relative;
+}
+
+.calendarDayCompleted::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.35);
+  z-index: 2;
+}
+
+.calendarDayCompleted:hover {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: #16a34a;
+  transform: scale(1.15);
+  box-shadow: 0 12px 24px rgba(34, 197, 94, 0.28);
+}
+
 .dayContent {
   display: flex;
   flex-direction: column;
@@ -1373,6 +1400,11 @@ select.input {
   border-radius: 50%;
   box-shadow: 0 0 0 2px rgba(229, 62, 62, 0.2);
   animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.bookingIndicatorCompleted {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.22);
 }
 
 @keyframes pulseGlow {

@@ -463,31 +463,11 @@ export default function PatientDashboard() {
   };
 
   return (
-  <div className={styles.container}>
-    {/* Top Navigation */}
-    <nav className={styles.topNav}>
-      <div className={styles.navLeft}>
-        <div className={styles.logo}>
-          <div className={styles.logoIcon}>NH</div>
-          <span>Nexus Health</span>
-        </div>
-        <div className={styles.navTabs}>
-          <button className={styles.navTab} onClick={() => navigate("/")}>Dashboard</button>
-          <button className={styles.navTab} onClick={() => navigate("/hospitals")}>Doctors</button>
-          <button className={`${styles.navTab} ${styles.active}`}>My Appointments</button>
-        </div>
-      </div>
-      <div className={styles.navRight}>
-        <div className={styles.userProfile}>
-          <div className={styles.userAvatar}>
-            {user?.fname?.charAt(0)}{user?.lname?.charAt(0)}
-          </div>
-          <span className={styles.userName}>{user?.fname}</span>
-        </div>
-      </div>
-    </nav>
+    <>
+      <PatientNavbar />
+      <div className={styles.container}>
 
-    {/* Page Header with Stats */}
+        {/* Page Header with Stats */}
     <div className={styles.pageHeader}>
       <div className={styles.headerTop}>
         <div className={styles.headerTitle}>
@@ -910,7 +890,8 @@ export default function PatientDashboard() {
         </div>
       </div>
     )}
-  </div>
-);
+      </div>
+    </>
+  );
 }
 
