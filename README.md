@@ -264,7 +264,7 @@ This project is licensed under the MIT License.
 
 ## 👥 Authors
 
-- Your Name - Initial work
+- Sayan Sarkar - Initial work
 
 ## 🙏 Acknowledgments
 
@@ -275,7 +275,7 @@ This project is licensed under the MIT License.
 
 ## 📞 Support
 
-For support, email your-email@example.com or create an issue in the repository.
+For support, email sarkarsayan4008@gmail.com or create an issue in the repository.
 
 ---
 
